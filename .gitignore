@@ -1,0 +1,14 @@
+# Ignore application-dev.yml ở tất cả service
+**/application-dev.yml
+
+# Maven
+**/target/
+**/.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+**/*.iml
+
+# OS
+.DS_Store
+Thumbs.db

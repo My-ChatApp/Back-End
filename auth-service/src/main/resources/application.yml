@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: auth-service
+  mongodb:
+    uri: ${MONGODB_URI}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+rabbitmq:
+  exchange: ${RABBITMQ_EXCHANGE}
+  routing-key: ${RABBITMQ_ROUTING_KEY}
+server:
+  port: ${SERVER_PORT}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
