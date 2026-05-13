@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: chat-service
+  mongodb:
+    uri: mongodb+srv://nhatduy20072004_db_user:0983729261@cluster0.qaodixq.mongodb.net/chat_db
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+rabbitmq:
+  exchange: auth.exchange
+  routing-key: auth.registered
+
+server:
+  port: 8082

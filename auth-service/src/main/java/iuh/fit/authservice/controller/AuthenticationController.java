@@ -11,6 +11,7 @@ import iuh.fit.authservice.repository.UserRepository;
 import iuh.fit.authservice.util.JwtUtil;
 import iuh.fit.common.dto.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Slf4j
 public class AuthenticationController {
 
     private AuthenticationManager authenticationManager;
@@ -45,17 +47,30 @@ public class AuthenticationController {
 
     @PostMapping("/signin")
     public ApiResponse<LoginResponse> authenticateUser(@RequestBody LoginRequest user) {
-        Authentication authentication = authenticationManager.authenticate(
-                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                        user.getEmail(),
-                        user.getPassword()
-                )
-        );
+        log.info("[AuthenticationController] Login attempt for email: {}", user.getEmail());
+        
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                            user.getEmail(),
+                            user.getPassword()
+                    )
+            );
 
+            log.info("[AuthenticationController] Authentication successful for: {}", user.getEmail());
 
-        final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtUtils.generateToken(userDetails.getUsername());
-        return new ApiResponse<>( true, "Login successful", new LoginResponse(token));
+            final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            if(userDetails == null) {
+                log.error("[AuthenticationController] UserDetails is null after authentication");
+                return new ApiResponse<>( false, "Invalid email or password", null);
+            }
+            String token = jwtUtils.generateToken(userDetails);
+            log.info("[AuthenticationController] Token generated for: {}", user.getEmail());
+            return new ApiResponse<>( true, "Login successful", new LoginResponse(token));
+        } catch (Exception e) {
+            log.error("[AuthenticationController] Authentication failed for {}: {}", user.getEmail(), e.getMessage());
+            return new ApiResponse<>( false, "Invalid email or password", null);
+        }
     }
 
     @PostMapping("/signup")

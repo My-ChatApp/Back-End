@@ -38,14 +38,16 @@ public class AuthService {
                 encoder.encode(request.getPassword())
         );
 
-        userRepository.save(user);
+        User newUser = userRepository.save(user);
 
+        System.out.println("User registered: " + newUser);
         rabbitTemplate.convertAndSend(
                 exchange,
                 routingKey,
                 new UserRegisteredEvent(
-                        user.getEmail(),
-                        user.getUsername()
+                        newUser.getId(),
+                        newUser.getEmail(),
+                        newUser.getUsername()
                 )
         );
     }

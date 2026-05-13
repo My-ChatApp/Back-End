@@ -14,3 +14,7 @@ spring:
               uri: ${AUTH_SERVICE_URI}
               predicates:
                 - Path=/api/v1/**
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}

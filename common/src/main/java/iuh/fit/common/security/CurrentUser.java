@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class CurrentUser {
 
-    private Long userId;
-    private String username;
-    private String role;
+    private String userId;
+    private String email;
 }
