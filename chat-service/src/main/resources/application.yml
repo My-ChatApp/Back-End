@@ -1,0 +1,90 @@
+# Cấu hình duy nhất — giá trị thật trong Back-End-NDuy/.env
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: chat-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mychatapp}
+    username: ${SPRING_DATASOURCE_USERNAME:mychatapp}
+    password: ${SPRING_DATASOURCE_PASSWORD:mychatapp_local}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: app
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:false}
+
+chat:
+  space:
+    enabled: ${CHAT_SPACE_ENABLED:true}
+    timeline-max-size: ${CHAT_SPACE_TIMELINE_MAX_SIZE:300}
+    default-page-size: ${CHAT_SPACE_DEFAULT_PAGE_SIZE:10}
+    hydrate-batch-size: ${CHAT_SPACE_HYDRATE_BATCH_SIZE:10}
+    dual-write-dynamodb: ${CHAT_SPACE_DUAL_WRITE_DYNAMODB:false}
+    redis-fanout-enabled: ${CHAT_SPACE_REDIS_FANOUT_ENABLED:false}
+
+rabbitmq:
+  chat:
+    exchange: ${RABBITMQ_CHAT_EXCHANGE:chat.exchange}
+    routing-key: ${RABBITMQ_CHAT_ROUTING_KEY:chat.message.sent}
+    queue: ${RABBITMQ_CHAT_QUEUE:chat.notification.queue}
+  presence:
+    exchange: ${RABBITMQ_PRESENCE_EXCHANGE:presence.exchange}
+    routing-key:
+      changed: ${RABBITMQ_PRESENCE_CHANGED_ROUTING_KEY:user.presence.changed}
+      notify: ${RABBITMQ_PRESENCE_NOTIFY_ROUTING_KEY:user.presence.notify}
+    notify-queue: ${RABBITMQ_PRESENCE_NOTIFY_QUEUE:chat.presence.notify.queue}
+  internal:
+    exchange: ${RABBITMQ_CHAT_INTERNAL_EXCHANGE:chat.internal}
+    persist-queue: ${RABBITMQ_CHAT_PERSIST_QUEUE:chat.persist.queue}
+    persist-routing-key: ${RABBITMQ_CHAT_PERSIST_ROUTING_KEY:chat.message.created}
+    hydrate-queue: ${RABBITMQ_CHAT_HYDRATE_QUEUE:chat.hydrate.queue}
+    hydrate-routing-key: ${RABBITMQ_CHAT_HYDRATE_ROUTING_KEY:chat.history.load}
+    updated-routing-key: ${RABBITMQ_CHAT_UPDATED_ROUTING_KEY:chat.message.updated}
+
+mychatapp:
+  dynamodb:
+    table-name: ${DYNAMODB_TABLE:MyChatApp_Chat}
+    # Để trống = AWS DynamoDB. Chỉ set DYNAMODB_ENDPOINT=http://localhost:8000 khi dev local.
+    endpoint: ${DYNAMODB_ENDPOINT:}
+  websocket:
+    endpoint: ${WEBSOCKET_ENDPOINT:/ws}
+    sock-js-enabled: ${WEBSOCKET_SOCKJS_ENABLED:true}
+    allowed-origin-patterns:
+      - http://localhost:3000
+      - ${WEBSOCKET_ALLOWED_ORIGINS:https://*.vercel.app}
+    broker:
+      topic-prefix: ${WEBSOCKET_TOPIC_PREFIX:/topic}
+      application-prefix: ${WEBSOCKET_APP_PREFIX:/app}
+
+aws:
+  region: ${AWS_REGION:ap-southeast-1}
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600000}
+
+server:
+  port: ${CHAT_SERVICE_PORT:8082}
+
+logging:
+  level:
+    root: INFO
+    iuh.fit: DEBUG
