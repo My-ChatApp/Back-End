@@ -1,16 +1,65 @@
+# Cấu hình duy nhất — giá trị thật trong Back-End-NDuy/.env
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
+  config:
+    import: optional:file:../.env[.properties]
   application:
     name: api-gateway
-
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      repositories:
+        enabled: false
   cloud:
     gateway:
       server:
         webflux:
-          routes:
-            - id: auth-service
-              uri: ${AUTH_SERVICE_URI}
-              predicates:
-                - Path=/api/v1/**
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders:
+                  - Authorization
+                  - Content-Type
+                  - X-Requested-With
+                exposedHeaders:
+                  - Authorization
+                maxAge: 3600
+          # Routes: GatewayRoutesConfig.java (rate limit optional via gateway.ratelimit.enabled)
+
+gateway:
+  ratelimit:
+    enabled: ${GATEWAY_RATELIMIT_ENABLED:false}
+    auth-replenish: ${GATEWAY_RATELIMIT_AUTH_REPLENISH:5}
+    auth-burst: ${GATEWAY_RATELIMIT_AUTH_BURST:10}
+    media-replenish: ${GATEWAY_RATELIMIT_MEDIA_REPLENISH:10}
+    media-burst: ${GATEWAY_RATELIMIT_MEDIA_BURST:20}
+    default-replenish: ${GATEWAY_RATELIMIT_DEFAULT_REPLENISH:50}
+    default-burst: ${GATEWAY_RATELIMIT_DEFAULT_BURST:100}
+    ws-replenish: ${GATEWAY_RATELIMIT_WS_REPLENISH:50}
+    ws-burst: ${GATEWAY_RATELIMIT_WS_BURST:100}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600000}
+
+logging:
+  level:
+    root: INFO
+    iuh.fit: DEBUG
+    org.springframework.cloud.gateway: DEBUG
