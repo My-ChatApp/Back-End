@@ -1,0 +1,150 @@
+# App images (build local: .\scripts\docker-build.ps1 -Service all -Tag v1)
+# Chạy cùng infra: docker compose -f docker-compose.yml -f docker-compose.apps.yml --env-file .env.docker up -d
+# Hoặc: .\scripts\compose-up.ps1
+
+name: mychatapp
+
+services:
+  magika:
+    image: mychatapp:magika-${IMAGE_TAG:-v1}
+    container_name: mychatapp-magika
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8090:8090"
+    environment:
+      MAGIKA_PORT: "8090"
+      MAGIKA_MAX_BYTES: "4096"
+
+  api-gateway:
+    image: mychatapp:gateway-${IMAGE_TAG:-v1}
+    container_name: mychatapp-api-gateway
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.docker
+    environment:
+      SERVER_PORT: "8080"
+      AUTH_SERVICE_URI: http://auth-service:8081
+      CHAT_SERVICE_URI: http://chat-service:8082
+      USER_SERVICE_URI: http://user-service:8083
+      NOTIFICATION_SERVICE_URI: http://notification-service:8084
+      MEDIA_SERVICE_URI: http://media-service:8085
+      SPRING_DATA_REDIS_HOST: valkey
+      SPRING_DATA_REDIS_PORT: "6379"
+    depends_on:
+      valkey:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      media-service:
+        condition: service_started
+
+  auth-service:
+    image: mychatapp:auth-${IMAGE_TAG:-v1}
+    container_name: mychatapp-auth-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.docker
+    environment:
+      AUTH_SERVICE_PORT: "8081"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mychatapp
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  chat-service:
+    image: mychatapp:chat-${IMAGE_TAG:-v1}
+    container_name: mychatapp-chat-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env.docker
+    environment:
+      CHAT_SERVICE_PORT: "8082"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mychatapp
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      SPRING_DATA_REDIS_HOST: valkey
+      SPRING_DATA_REDIS_PORT: "6379"
+      # Không set DYNAMODB_ENDPOINT → AWS DynamoDB (credentials trong .env.docker)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      valkey:
+        condition: service_healthy
+
+  user-service:
+    image: mychatapp:user-${IMAGE_TAG:-v1}
+    container_name: mychatapp-user-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8083:8083"
+    env_file:
+      - .env.docker
+    environment:
+      USER_SERVICE_PORT: "8083"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mychatapp
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  notification-service:
+    image: mychatapp:notification-${IMAGE_TAG:-v1}
+    container_name: mychatapp-notification-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env.docker
+    environment:
+      NOTIFICATION_SERVICE_PORT: "8084"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mychatapp
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  media-service:
+    image: mychatapp:media-${IMAGE_TAG:-v1}
+    container_name: mychatapp-media-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8085:8085"
+    env_file:
+      - .env.docker
+    environment:
+      MEDIA_SERVICE_PORT: "8085"
+      MAGIKA_SERVICE_URL: http://magika:8090
+    depends_on:
+      magika:
+        condition: service_started
