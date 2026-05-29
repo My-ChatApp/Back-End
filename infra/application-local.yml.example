@@ -1,0 +1,10 @@
+# Đã gộp vào từng service: src/main/resources/application.yml
+# Giá trị thật đặt trong Back-End-NDuy/.env (copy từ .env.example)
+
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mychatapp}
+    username: ${SPRING_DATASOURCE_USERNAME:mychatapp}
+    password: ${SPRING_DATASOURCE_PASSWORD:mychatapp_local}

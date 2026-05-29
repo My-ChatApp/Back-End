@@ -1,0 +1,13 @@
+{
+  "app": "npx ts-node --prefer-ts-exts app.ts",
+  "context": {
+    "mychatapp:environment": "dev",
+    "mychatapp:domainName": "oeb20412.com",
+    "mychatapp:hostedZoneId": "",
+    "mychatapp:mailFromSubdomain": "mail",
+    "mychatapp:sesFromEmail": "noreply@oeb20412.com",
+    "mychatapp:bucketNamePrefix": "mychatapp-attachments",
+    "mychatapp:dynamodbTableName": "MyChatApp_Chat",
+    "mychatapp:sesImportExisting": true
+  }
+}

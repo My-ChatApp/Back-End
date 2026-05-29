@@ -1,0 +1,23 @@
+{
+  "name": "mychatapp-infra-cdk",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "synth": "cdk synth",
+    "deploy": "cdk deploy --require-approval never",
+    "deploy:sync": "cdk deploy --require-approval never && npm run sync-env",
+    "sync-env": "powershell -NoProfile -ExecutionPolicy Bypass -File ../../scripts/sync-cdk-env.ps1",
+    "diff": "cdk diff",
+    "destroy": "cdk destroy"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "aws-cdk": "^2.175.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.175.0",
+    "constructs": "^10.4.2"
+  }
+}
