@@ -1,11 +1,23 @@
 package iuh.fit.authservice.repository;
 
 import iuh.fit.authservice.entity.User;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UserRepository extends MongoRepository<User, String> {
-    User findByUsername(String username);
-    boolean existsByUsername(String username);
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface UserRepository extends JpaRepository<User, UUID> {
+
+    Optional<User> findByEmail(String email);
+
+    Optional<User> findByUsername(String username);
+
+    Optional<User> findByIdAndDeletedAtIsNull(UUID id);
+
+    List<User> findAllByDeletedAtIsNull();
+
     boolean existsByEmail(String email);
-    User findByEmail(String email);
+
+    boolean existsByUsername(String username);
 }
