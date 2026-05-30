@@ -1,0 +1,30 @@
+# Secrets — never send to Docker daemon
+.env
+**/.env
+**/.env.*
+!.env.example
+
+# Build outputs
+**/target/
+**/node_modules/
+**/dist/
+
+# Git & IDE
+.git/
+.gitignore
+**/.idea/
+**/.vscode/
+**/*.iml
+
+# CDK / infra noise
+infra/cdk/
+infra/cdk/**
+
+# Docs & local scripts (not needed in images)
+**/*.md
+scripts/.launchers/
+
+# Python venv (magika local dev)
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/

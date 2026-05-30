@@ -1,21 +1,58 @@
-version: "3.8"
+# Hạ tầng local: PostgreSQL, RabbitMQ, Valkey
+# App images: docker-compose.apps.yml — xem .\scripts\compose-up.ps1
+name: mychatapp
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mychatapp-postgres
+    restart: unless-stopped
+    # Port 5433 tránh xung đột PostgreSQL cài sẵn trên Windows (thường chiếm 5432)
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: mychatapp
+      POSTGRES_USER: mychatapp
+      POSTGRES_PASSWORD: mychatapp_local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mychatapp -d mychatapp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     restart: unless-stopped
-
+    # Port 5673/15673 tránh xung đột RabbitMQ cài sẵn trên Windows (5672/15672)
     ports:
-      - "5672:5672"    # AMQP port (app connect)
-      - "15672:15672"  # UI management
-
+      - "5673:5672"
+      - "15673:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: mychatapp-valkey
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["valkey-server", "--appendonly", "yes"]
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
+  postgres_data:
   rabbitmq_data:
+  valkey_data:

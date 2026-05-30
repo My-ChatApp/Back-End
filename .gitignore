@@ -1,5 +1,7 @@
-# Ignore application-dev.yml ở tất cả service
-**/application-dev.yml
+# Local env (copy from .env.example)
+.env
+.env.docker
+DockerTest/.env.docker
 
 # Maven
 **/target/
