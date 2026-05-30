@@ -1,0 +1,5 @@
+# Đã chuyển lên Back-End-NDuy/docker-compose.apps.yml
+# Chạy: cd .. && .\scripts\compose-up.ps1
+
+include:
+  - path: ../docker-compose.apps.yml
