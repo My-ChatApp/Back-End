@@ -1,0 +1,59 @@
+# Cấu hình duy nhất — giá trị thật trong Back-End-NDuy/.env
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: user-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mychatapp}
+    username: ${SPRING_DATASOURCE_USERNAME:mychatapp}
+    password: ${SPRING_DATASOURCE_PASSWORD:mychatapp_local}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: app
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
+aws:
+  region: ${AWS_REGION:ap-southeast-1}
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+  s3:
+    bucket: ${S3_BUCKET:}
+
+media:
+  public-base-url: ${MEDIA_PUBLIC_BASE_URL:}
+
+rabbitmq:
+  auth:
+    exchange: ${RABBITMQ_EXCHANGE:auth.exchange}
+    queue: ${RABBITMQ_PROFILE_QUEUE:profile-create.queue}
+    routing-key: ${RABBITMQ_ROUTING_KEY:auth.registered}
+  friend:
+    exchange: ${RABBITMQ_FRIEND_EXCHANGE:friend.exchange}
+    routing-key:
+      friend-request: ${RABBITMQ_FRIEND_REQUEST_ROUTING_KEY:friend.request.sent}
+      friend-accepted: ${RABBITMQ_FRIEND_ACCEPTED_ROUTING_KEY:friend.request.accepted}
+  presence:
+    exchange: ${RABBITMQ_PRESENCE_EXCHANGE:presence.exchange}
+    queue:
+      changed: ${RABBITMQ_PRESENCE_CHANGED_QUEUE:user.presence.changed.queue}
+    routing-key:
+      changed: ${RABBITMQ_PRESENCE_CHANGED_ROUTING_KEY:user.presence.changed}
+      notify: ${RABBITMQ_PRESENCE_NOTIFY_ROUTING_KEY:user.presence.notify}
+
+server:
+  port: ${USER_SERVICE_PORT:8083}
+
+logging:
+  level:
+    root: INFO
+    iuh.fit: DEBUG

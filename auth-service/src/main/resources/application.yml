@@ -1,21 +1,42 @@
+# Cấu hình duy nhất — giá trị thật trong Back-End-NDuy/.env
 spring:
+  config:
+    import: optional:file:../.env[.properties]
   application:
     name: auth-service
-  mongodb:
-    uri: ${MONGODB_URI}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mychatapp}
+    username: ${SPRING_DATASOURCE_USERNAME:mychatapp}
+    password: ${SPRING_DATASOURCE_PASSWORD:mychatapp_local}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: app
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
 
 rabbitmq:
-  exchange: ${RABBITMQ_EXCHANGE}
-  routing-key: ${RABBITMQ_ROUTING_KEY}
-server:
-  port: ${SERVER_PORT}
+  exchange: ${RABBITMQ_EXCHANGE:auth.exchange}
+  routing-key: ${RABBITMQ_ROUTING_KEY:auth.registered}
 
-# JWT Configuration
+media:
+  public-base-url: ${MEDIA_PUBLIC_BASE_URL:}
+
+server:
+  port: ${AUTH_SERVICE_PORT:8081}
+
 jwt:
   secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION}
+  expiration: ${JWT_EXPIRATION:3600000}
+
+logging:
+  level:
+    root: INFO
+    iuh.fit: DEBUG

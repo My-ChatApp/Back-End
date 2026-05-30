@@ -1,30 +1,113 @@
 package iuh.fit.authservice.entity;
 
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
+import lombok.Setter;
 
-@Document(collection = "users")
-@Data
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Entity
+@Table(name = "users", schema = "app")
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class User {
 
     @Id
-    private String id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
-    @Indexed(unique = true)
+    @Column(nullable = false, unique = true, columnDefinition = "citext")
     private String email;
-    private String username;
-    private String password;
 
-    public User(String email,String username, String password) {
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Column(name = "display_name", nullable = false, length = 100)
+    private String displayName;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "avatar_public_id")
+    private String avatarPublicId;
+
+    @Column(length = 500)
+    private String bio;
+
+    @Column(length = 20)
+    private String phone;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender gender;
+
+    @Column(nullable = false, length = 10)
+    private String locale = "vi";
+
+    @Column(nullable = false)
+    private boolean online = false;
+
+    @Column(name = "last_seen_at")
+    private Instant lastSeenAt;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean active = true;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(name = "password_changed_at")
+    private Instant passwordChangedAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    void onCreate() {
+        Instant now = Instant.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
+
+    public User(String email, String username, String passwordHash) {
         this.email = email;
         this.username = username;
-        this.password = password;
+        this.passwordHash = passwordHash;
+        this.displayName = username;
+    }
+
+    public void applyDefaultAvatar(String avatarUrl, String avatarS3Key) {
+        if (this.avatarUrl == null || this.avatarUrl.isBlank()) {
+            this.avatarUrl = avatarUrl;
+        }
+        if (this.avatarPublicId == null || this.avatarPublicId.isBlank()) {
+            this.avatarPublicId = avatarS3Key;
+        }
     }
 }

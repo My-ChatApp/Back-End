@@ -1,0 +1,52 @@
+# Cấu hình duy nhất — giá trị thật trong Back-End-NDuy/.env
+server:
+  port: ${NOTIFICATION_SERVICE_PORT:8084}
+
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: notification-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mychatapp}
+    username: ${SPRING_DATASOURCE_USERNAME:mychatapp}
+    password: ${SPRING_DATASOURCE_PASSWORD:mychatapp_local}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: app
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Tránh vòng lặp vô hạn khi handler lỗi (message cũ requeue mãi)
+        default-requeue-rejected: false
+
+aws:
+  region: ${AWS_REGION:ap-southeast-1}
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+mychatapp:
+  mail:
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:MyChatApp}
+    registration-enabled: ${MAIL_REGISTRATION_ENABLED:false}
+
+rabbitmq:
+  mail:
+    exchange: ${RABBITMQ_MAIL_EXCHANGE:auth.exchange}
+    queue: ${RABBITMQ_MAIL_QUEUE:mail.queue}
+    routing-key: ${RABBITMQ_MAIL_ROUTING_KEY:auth.registered}
+
+logging:
+  level:
+    root: INFO
+    iuh.fit: DEBUG

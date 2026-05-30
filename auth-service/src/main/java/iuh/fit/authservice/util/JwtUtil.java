@@ -1,9 +1,12 @@
 package iuh.fit.authservice.util;
 
 
+import iuh.fit.authservice.security.CustomUserDetails;
+import iuh.fit.authservice.service.CustomUserDetailsService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 
@@ -26,16 +29,29 @@ public class JwtUtil {
 
     @PostConstruct
     public void init() {
+        log.info("[JwtUtil] Initializing with JWT secret: {}", jwtSecret != null ? "***" : "NULL");
+        if (jwtSecret == null || jwtSecret.isEmpty() || jwtSecret.contains("${")) {
+            log.error("[JwtUtil] ❌ JWT_SECRET not properly configured! secret={}", jwtSecret);
+        } else {
+            log.info("[JwtUtil] ✅ JWT_SECRET loaded successfully, expiration={}", jwtExpirationMs);
+        }
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email) {
-        return Jwts.builder()
-                .subject(email)
+    public String generateToken(UserDetails userDetails) {
+        CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+
+        String token = Jwts.builder()
+                .subject(userDetails.getUsername())
+                .claim("userId",customUserDetails.getUserid())
+                .claim("username",customUserDetails.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key)
                 .compact();
+        
+        log.info("[JwtUtil] Token generated for user: {}, token length: {}", userDetails.getUsername(), token.length());
+        return token;
     }
 
     public String getUserFromToken(String token) {
