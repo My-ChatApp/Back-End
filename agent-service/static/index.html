@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorkChat — with @ChatBot</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --surface3: #252532;
+    --border: #2a2a38;
+    --border-bright: #3a3a52;
+    --text: #e8e8f0;
+    --text-dim: #8888a8;
+    --text-faint: #44445a;
+    --accent: #7c6af7;
+    --accent-bright: #9d8fff;
+    --accent-glow: rgba(124,106,247,0.15);
+    --green: #4ade80;
+    --green-dim: rgba(74,222,128,0.12);
+    --bot-bg: #1a1a2e;
+    --bot-border: #2d2d52;
+    --private-bg: #1a1628;
+    --private-border: #3d2f6e;
+    --private-glow: rgba(124,106,247,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 16px 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .workspace-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .workspace-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    margin-right: 6px;
+  }
+
+  .sidebar-section {
+    padding: 0 8px;
+    margin-bottom: 4px;
+  }
+
+  .sidebar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 4px 8px;
+    margin-bottom: 2px;
+  }
+
+  .channel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+
+  .channel:hover { background: var(--surface2); color: var(--text); }
+  .channel.active { background: var(--surface3); color: var(--text); font-weight: 500; }
+  .channel .hash { font-size: 16px; opacity: 0.5; }
+
+  .bot-badge {
+    margin-left: auto;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent);
+    color: var(--accent-bright);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  /* Main chat */
+  .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .chat-header-icon {
+    font-size: 18px;
+    opacity: 0.7;
+  }
+
+  .chat-header-name {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+
+  .chat-header-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ai-indicator {
+    background: var(--accent-glow);
+    border: 1px solid var(--bot-border);
+    color: var(--accent-bright);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ai-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg-group {
+    display: flex;
+    gap: 10px;
+    padding: 4px 0;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg-avatar {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg-body { flex: 1; }
+
+  .msg-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+
+  .msg-author {
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  .msg-time {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .msg-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .msg-text .mention {
+    color: var(--accent-bright);
+    background: var(--accent-glow);
+    border-radius: 3px;
+    padding: 0 3px;
+    font-weight: 500;
+  }
+
+  /* Bot reply card */
+  .bot-reply {
+    margin-top: 8px;
+    margin-left: 44px;
+    background: var(--private-bg);
+    border: 1px solid var(--private-border);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 20px var(--private-glow);
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .bot-reply-header {
+    padding: 8px 12px;
+    background: rgba(124,106,247,0.06);
+    border-bottom: 1px solid var(--private-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-bright);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .bot-reply-header .lock-icon { font-size: 12px; }
+
+  .bot-reply-header .only-you {
+    margin-left: auto;
+    font-weight: 400;
+    color: var(--text-faint);
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .bot-reply-content {
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .bot-reply-footer {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(45,45,82,0.5);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn-copy {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    letter-spacing: 0.2px;
+  }
+
+  .btn-copy:hover { background: var(--accent-bright); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,106,247,0.4); }
+  .btn-copy:active { transform: translateY(0); }
+  .btn-copy.copied { background: #22c55e; }
+
+  .btn-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .btn-edit:hover { border-color: var(--accent); color: var(--accent-bright); background: var(--accent-glow); }
+
+  /* Typing indicator */
+  .typing-indicator {
+    margin-top: 8px;
+    margin-left: 44px;
+    padding: 10px 14px;
+    background: var(--bot-bg);
+    border: 1px solid var(--bot-border);
+    border-radius: 10px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .typing-indicator.show { display: flex; }
+
+  .typing-dots { display: flex; gap: 4px; }
+  .typing-dots span {
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .input-hint code {
+    font-family: 'DM Mono', monospace;
+    background: var(--surface3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--accent-bright);
+    font-size: 11px;
+  }
+
+  .input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .input-box {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    min-height: 42px;
+    max-height: 120px;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+
+  .input-box:focus { border-color: var(--border-bright); }
+  .input-box::placeholder { color: var(--text-faint); }
+
+  .input-box .mention-highlight {
+    color: var(--accent-bright);
+    font-weight: 500;
+  }
+
+  .btn-send {
+    width: 42px; height: 42px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .btn-send:hover { background: var(--accent-bright); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,106,247,0.4); }
+  .btn-send:active { transform: translateY(0); }
+  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* Mention autocomplete */
+  .mention-popup {
+    position: absolute;
+    bottom: 80px;
+    left: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: none;
+    z-index: 100;
+  }
+
+  .mention-popup.show { display: block; }
+
+  .mention-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .mention-item:hover, .mention-item.selected {
+    background: var(--accent-glow);
+  }
+
+  .mention-item-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .mention-item-info { flex: 1; }
+  .mention-item-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .mention-item-desc { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+  /* Edit modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    padding: 24px;
+    width: 500px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: translateY(10px);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.show .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  .modal-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    outline: none;
+    min-height: 140px;
+    transition: border-color 0.15s;
+  }
+
+  .modal-textarea:focus { border-color: var(--border-bright); }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn-modal-cancel {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+
+  .btn-modal-cancel:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .btn-modal-copy {
+    padding: 8px 16px;
+    background: var(--accent);
+    border: none;
+    color: white;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+
+  .btn-modal-copy:hover { background: var(--accent-bright); }
+
+  /* Day divider */
+  .day-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .day-divider::before, .day-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="workspace-name">🏢 WorkSpace VN</div>
+    <div class="workspace-sub"><span class="status-dot"></span>Đang hoạt động</div>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Kênh</div>
+    <div class="channel active">
+      <span class="hash">#</span> chung
+      <span class="bot-badge">BOT</span>
+    </div>
+    <div class="channel"><span class="hash">#</span> marketing</div>
+    <div class="channel"><span class="hash">#</span> kỹ-thuật</div>
+    <div class="channel"><span class="hash">#</span> random</div>
+  </div>
+  <div class="sidebar-section" style="margin-top:12px">
+    <div class="sidebar-label">Trực tiếp</div>
+    <div class="channel">
+      <div class="msg-avatar" style="width:22px;height:22px;background:#4f46e5;font-size:10px;border-radius:50%">BM</div>
+      Boss Minh
+    </div>
+    <div class="channel">
+      <div class="msg-avatar" style="width:22px;height:22px;background:#0891b2;font-size:10px;border-radius:50%">NA</div>
+      Nam Anh
+    </div>
+  </div>
+</div>
+
+<div class="chat-main">
+  <div class="chat-header">
+    <span class="chat-header-icon">#</span>
+    <span class="chat-header-name">chung</span>
+    <div class="chat-header-desc">
+      <span>Kênh chung của công ty</span>
+      <div class="ai-indicator">
+        <div class="ai-dot"></div>
+        @ChatBot active
+      </div>
+    </div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="day-divider">Hôm nay</div>
+
+    <!-- Sample messages -->
+    <div class="msg-group">
+      <div class="msg-avatar" style="background: linear-gradient(135deg,#0891b2,#06b6d4)">NA</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-author">Nam Anh</span>
+          <span class="msg-time">09:14</span>
+        </div>
+        <div class="msg-text">Chào mọi người! Hôm nay họp lúc mấy giờ vậy?</div>
+      </div>
+    </div>
+
+    <div class="msg-group">
+      <div class="msg-avatar" style="background: linear-gradient(135deg,#7c3aed,#8b5cf6)">TL</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-author">Thu Lan</span>
+          <span class="msg-time">09:17</span>
+        </div>
+        <div class="msg-text">2h chiều nhé. Phòng họp A.</div>
+      </div>
+    </div>
+
+    <div class="msg-group">
+      <div class="msg-avatar" style="background: linear-gradient(135deg,#b45309,#d97706)">BT</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-author">Bảo Trân</span>
+          <span class="msg-time">09:31</span>
+        </div>
+        <div class="msg-text"><span class="mention">@ChatBot</span> soạn 1 tin nhắn trang trọng hỏi thăm sức khỏe của boss sau kỳ nghỉ dài</div>
+      </div>
+    </div>
+
+    <div class="bot-reply" id="demo-bot-reply">
+      <div class="bot-reply-header">
+        <span class="lock-icon">🔒</span>
+        Phản hồi từ ChatBot
+        <span class="only-you">Chỉ bạn thấy tin này</span>
+      </div>
+      <div class="bot-reply-content">Kính gửi Anh/Chị [Tên sếp],
+
+Sau kỳ nghỉ vừa rồi, em hy vọng Anh/Chị đã có những ngày thật thư giãn và phục hồi sức khỏe tốt. Em muốn gửi lời hỏi thăm chân thành đến Anh/Chị, mong rằng Anh/Chị luôn khỏe mạnh và năng lượng để tiếp tục dẫn dắt chúng em trong công việc phía trước.
+
+Kính chúc Anh/Chị nhiều sức khỏe!
+
+Trân trọng,
+[Tên của bạn]</div>
+      <div class="bot-reply-footer">
+        <button class="btn-copy" onclick="copyText(this, document.querySelector('#demo-bot-reply .bot-reply-content').textContent)">
+          📋 Sao chép
+        </button>
+        <button class="btn-edit" onclick="openEdit(document.querySelector('#demo-bot-reply .bot-reply-content').textContent)">
+          ✏️ Chỉnh sửa
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mention popup -->
+  <div class="mention-popup" id="mentionPopup">
+    <div class="mention-item selected" onclick="selectMention()">
+      <div class="mention-item-icon">🤖</div>
+      <div class="mention-item-info">
+        <div class="mention-item-name">ChatBot</div>
+        <div class="mention-item-desc">Trợ lý AI — Soạn thảo, tư vấn, trả lời</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area" style="position:relative">
+    <div class="input-hint">
+      Gõ <code>@ChatBot</code> để kích hoạt trợ lý AI · <code>Enter</code> để gửi
+    </div>
+    <div class="input-wrapper">
+      <textarea
+        class="input-box"
+        id="messageInput"
+        placeholder="Nhắn tin tới #chung"
+        rows="1"
+      ></textarea>
+      <button class="btn-send" id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Chỉnh sửa trước khi sao chép</div>
+    <textarea class="modal-textarea" id="editTextarea"></textarea>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" onclick="closeEdit()">Huỷ</button>
+      <button class="btn-modal-copy" onclick="copyFromEdit()">📋 Sao chép & đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const messages = document.getElementById('messages');
+  const mentionPopup = document.getElementById('mentionPopup');
+
+  let conversationHistory = [];
+  let isLoading = false;
+
+  // Auto-resize textarea
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+
+    const val = input.value;
+    const atIndex = val.lastIndexOf('@');
+    if (atIndex !== -1) {
+      const after = val.slice(atIndex + 1).toLowerCase();
+      if ('chatbot'.startsWith(after) && after.length <= 7) {
+        mentionPopup.classList.add('show');
+      } else {
+        mentionPopup.classList.remove('show');
+      }
+    } else {
+      mentionPopup.classList.remove('show');
+    }
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (mentionPopup.classList.contains('show')) {
+        selectMention();
+      } else {
+        sendMessage();
+      }
+    }
+    if (e.key === 'Escape') mentionPopup.classList.remove('show');
+  });
+
+  function selectMention() {
+    const val = input.value;
+    const atIndex = val.lastIndexOf('@');
+    input.value = val.slice(0, atIndex) + '@ChatBot ';
+    mentionPopup.classList.remove('show');
+    input.focus();
+  }
+
+  function getTime() {
+    return new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendUserMessage(text) {
+    const group = document.createElement('div');
+    group.className = 'msg-group';
+    const highlighted = text.replace(/@ChatBot/gi, '<span class="mention">@ChatBot</span>');
+    group.innerHTML = `
+      <div class="msg-avatar" style="background: linear-gradient(135deg,#059669,#10b981)">Bạn</div>
+      <div class="msg-body">
+        <div class="msg-meta">
+          <span class="msg-author">Bạn</span>
+          <span class="msg-time">${getTime()}</span>
+        </div>
+        <div class="msg-text">${highlighted}</div>
+      </div>
+    `;
+    messages.appendChild(group);
+    return group;
+  }
+
+  function appendTyping() {
+    const el = document.createElement('div');
+    el.className = 'typing-indicator show';
+    el.id = 'typingIndicator';
+    el.innerHTML = `
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <span>@ChatBot đang soạn...</span>
+    `;
+    messages.appendChild(el);
+    messages.scrollTop = messages.scrollHeight;
+    return el;
+  }
+
+  function appendBotReply(text) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'bot-reply';
+    wrapper.innerHTML = `
+      <div class="bot-reply-header">
+        <span class="lock-icon">🔒</span>
+        Phản hồi từ ChatBot
+        <span class="only-you">Chỉ bạn thấy tin này</span>
+      </div>
+      <div class="bot-reply-content">
+          ${escapeHtml(text).replace(/\n/g, "<br>")}
+      </div>      
+      <div class="bot-reply-footer">
+        <button class="btn-copy" onclick="copyText(this, this.closest('.bot-reply').querySelector('.bot-reply-content').textContent)">
+          📋 Sao chép
+        </button>
+        <button class="btn-edit" onclick="openEdit(this.closest('.bot-reply').querySelector('.bot-reply-content').textContent)">
+          ✏️ Chỉnh sửa
+        </button>
+      </div>
+    `;
+    messages.appendChild(wrapper);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text || isLoading) return;
+
+    mentionPopup.classList.remove('show');
+    input.value = '';
+    input.style.height = 'auto';
+
+    appendUserMessage(text);
+    messages.scrollTop = messages.scrollHeight;
+
+    const isBotMention = /@ChatBot/i.test(text);
+    if (!isBotMention) return;
+
+    isLoading = true;
+    sendBtn.disabled = true;
+    const typing = appendTyping();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          history: conversationHistory
+        })
+      });
+
+      const data = await res.json();
+
+      console.log("API RESPONSE:", data);
+
+      typing.remove();
+
+      if (!res.ok) {
+          appendBotReply(
+              "Lỗi API: " + (data.detail || "Unknown error")
+          );
+          return;
+      }
+
+      appendBotReply(data.reply || "(Không có phản hồi)");
+    } catch (err) {
+      typing.remove();
+      const errEl = document.createElement('div');
+      errEl.style.cssText = 'margin:8px 0 8px 44px;font-size:13px;color:#f87171;padding:8px 12px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);border-radius:8px;';
+      errEl.textContent = '⚠️ Không thể kết nối đến server. Hãy đảm bảo service đang chạy trên port 8088.';
+      messages.appendChild(errEl);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    isLoading = false;
+    sendBtn.disabled = false;
+  }
+
+  function copyText(btn, text) {
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '✅ Đã sao chép!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  let editingText = '';
+  function openEdit(text) {
+    editingText = text;
+    document.getElementById('editTextarea').value = text.trim();
+    document.getElementById('editModal').classList.add('show');
+  }
+
+  function closeEdit() {
+    document.getElementById('editModal').classList.remove('show');
+  }
+
+  function copyFromEdit() {
+    const text = document.getElementById('editTextarea').value;
+    navigator.clipboard.writeText(text).then(() => {
+      closeEdit();
+    });
+  }
+
+  document.getElementById('editModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('editModal')) closeEdit();
+  });
+</script>
+</body>
+</html>

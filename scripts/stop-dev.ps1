@@ -12,7 +12,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 Set-Location $RootDir
 
 $currentPid = $PID
-$devPorts = @(8080, 8081, 8082, 8083, 8084, 8085, 8090)
+$devPorts = @(8080, 8081, 8082, 8083, 8084, 8085, 8088, 8090)
 $serviceProcessNames = @('java', 'node', 'python')
 
 Write-Host "Dang dung cac service tren port: $($devPorts -join ', ')" -ForegroundColor Cyan
