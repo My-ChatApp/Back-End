@@ -7,6 +7,7 @@ $services = @(
     @{ Name = "user-service";         Dir = "user-service";         Port = 8083; Pattern = "Started UserServiceApplication" },
     @{ Name = "notification-service"; Dir = "notification-service"; Port = 8084; Pattern = "Started NotificationServiceApplication" },
     @{ Name = "media-service";        Dir = "media-service";        Port = 8085; Pattern = "media-service listening"; Runtime = "node" },
+    @{ Name = "agent-service";        Dir = "agent-service";        Port = 8088; Pattern = "Uvicorn running on"; Runtime = "python" },
     @{ Name = "api-gateway";          Dir = "api-gateway";          Port = 8080; Pattern = "Started ApiGatewayApplication" }
 )
 
@@ -28,6 +29,13 @@ foreach ($svc in $services) {
             & npm install --prefix $wd 2>&1 | Out-Null
         }
         $startCmd = "cd /d `"$wd`" && npm run dev > `"$log`" 2>&1"
+    } elseif ($svc.Runtime -eq "python") {
+        if (-not (Test-Path "$wd\.venv")) {
+            & python -m venv "$wd\.venv" 2>&1 | Out-Null
+            & (Join-Path $wd ".venv\Scripts\pip.exe") install -r (Join-Path $wd 'requirements.txt') 2>&1 | Out-Null
+        }
+        $pyExe = (Join-Path $wd ".venv\Scripts\python.exe")
+        $startCmd = "cd /d `"$wd`" && `"$pyExe`" -m uvicorn main:app --host 0.0.0.0 --port $($svc.Port) > `"$log`" 2>&1"
     } else {
         $startCmd = "cd /d `"$wd`" && `"$mvnw`" spring-boot:run -q > `"$log`" 2>&1"
     }
