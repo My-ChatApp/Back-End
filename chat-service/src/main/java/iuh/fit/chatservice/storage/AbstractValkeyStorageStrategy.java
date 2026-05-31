@@ -53,20 +53,31 @@ public abstract class AbstractValkeyStorageStrategy implements ChatStorageStrate
                     .map(ChatMessage::getCreatedAt)
                     .or(() -> chatMessageRepository.findByMessageId(beforeMessageId).map(ChatMessage::getCreatedAt))
                     .orElse(null);
-            if (beforeCreatedAt != null) {
-                triggerHydrate(conversationId, userId, beforeMessageId, beforeCreatedAt, limit);
+
+            if (beforeCreatedAt == null) {
+                return page(fromSpace, false, false);
             }
-            return MessagesPageResponse.builder()
-                    .messages(fromSpace)
-                    .loading(true)
-                    .hasMore(true)
-                    .build();
+
+            boolean olderExistsInDdb = !chatMessageRepository
+                    .findByConversationIdBefore(conversationId, beforeCreatedAt, beforeMessageId, 1)
+                    .isEmpty();
+
+            if (!olderExistsInDdb) {
+                return page(fromSpace, false, false);
+            }
+
+            triggerHydrate(conversationId, userId, beforeMessageId, beforeCreatedAt, limit);
+            return page(fromSpace, true, true);
         }
 
+        return page(fromSpace, false, fromSpace.size() >= limit);
+    }
+
+    private MessagesPageResponse page(List<ChatMessage> messages, boolean loading, boolean hasMore) {
         return MessagesPageResponse.builder()
-                .messages(fromSpace)
-                .loading(false)
-                .hasMore(fromSpace.size() >= limit)
+                .messages(messages)
+                .loading(loading)
+                .hasMore(hasMore)
                 .build();
     }
 
