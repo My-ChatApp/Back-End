@@ -1,6 +1,5 @@
-# Chay toan bo backend local (Windows PowerShell) — cau hinh: .env + application.yml
+# Chay toan bo backend local (Windows PowerShell) - cau hinh: .env + application.yml
 # Usage:
-#   .\scripts\run-dev.ps1
 #   .\scripts\run-dev.ps1
 #   .\scripts\run-dev.ps1 -SkipDocker      # chi chay microservice (infra da chay san)
 #   .\scripts\run-dev.ps1 -SkipBuild
@@ -65,12 +64,12 @@ function Wait-TcpPort([int]$Port, [int]$TimeoutSec = 90) {
 }
 
 function Start-DevService(
-    [string]$Name,
-    [string]$RelativeDir,
-    [int]$Port,
-    [int]$DelaySec = 0,
-    [ValidateSet("java", "node", "python")]
-    [string]$Runtime = "java"
+        [string]$Name,
+        [string]$RelativeDir,
+        [int]$Port,
+        [int]$DelaySec = 0,
+        [ValidateSet("java", "node", "python")]
+        [string]$Runtime = "java"
 ) {
     $serviceDir = (Resolve-Path (Join-Path $RootDir $RelativeDir)).Path
 
@@ -88,7 +87,7 @@ function Start-DevService(
         $launcherContent = @"
 `$host.UI.RawUI.WindowTitle = 'MyChatApp - $Name (:$Port)'
 Set-Location -LiteralPath '$serviceDir'
-Write-Host '[$Name] port $Port — uvicorn (Python/FastAPI)' -ForegroundColor Green
+Write-Host '[$Name] port $Port - uvicorn (Python/FastAPI)' -ForegroundColor Green
 `$venv = Join-Path '$serviceDir' '.venv'
 if (-not (Test-Path `$venv)) {
     Write-Host '[$Name] tao venv + pip install...' -ForegroundColor Yellow
@@ -108,7 +107,7 @@ if (`$LASTEXITCODE -ne 0) {
         $launcherContent = @"
 `$host.UI.RawUI.WindowTitle = 'MyChatApp - $Name (:$Port)'
 Set-Location -LiteralPath '$serviceDir'
-Write-Host '[$Name] port $Port — cau hinh: ..\.env (Node/Express)' -ForegroundColor Green
+Write-Host '[$Name] port $Port - cau hinh: ..\.env (Node/Express)' -ForegroundColor Green
 if (-not (Test-Path 'node_modules')) {
     Write-Host '[$Name] npm install...' -ForegroundColor Yellow
     npm install
@@ -135,7 +134,7 @@ if (`$LASTEXITCODE -ne 0) {
         $launcherContent = @"
 `$host.UI.RawUI.WindowTitle = 'MyChatApp - $Name (:$Port)'
 Set-Location -LiteralPath '$serviceDir'
-Write-Host '[$Name] port $Port — cau hinh: application.yml + ..\.env' -ForegroundColor Green
+Write-Host '[$Name] port $Port - cau hinh: application.yml + ..\.env' -ForegroundColor Green
 & '$mvnwPath' spring-boot:run
 if (`$LASTEXITCODE -ne 0) {
     Write-Host ''; Write-Host "[Maven thoat ma `$LASTEXITCODE]" -ForegroundColor Red
@@ -147,13 +146,12 @@ if (`$LASTEXITCODE -ne 0) {
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText($launcherPath, $launcherContent, $utf8NoBom)
 
-    # cmd "start" mo console moi ro rang (Start-Process pwsh tu Cursor/IDE doi khi khong hien cua so)
     $windowTitle = "MyChatApp - $Name"
     $psExe = (Get-Command powershell.exe -ErrorAction Stop).Source
     $startCmd = "start `"$windowTitle`" `"$psExe`" -NoExit -NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $startCmd -WorkingDirectory $serviceDir -WindowStyle Hidden
 
-    Write-Host "  Da mo cua so: $Name (port $Port) — tim tren taskbar: $windowTitle" -ForegroundColor DarkGray
+    Write-Host "  Da mo cua so: $Name (port $Port) - tim tren taskbar: $windowTitle" -ForegroundColor DarkGray
 }
 
 function Start-MagikaDocker {
@@ -196,7 +194,7 @@ function Start-MagikaDocker {
             Start-Sleep -Seconds 3
         }
     }
-    Write-Host "  Canh bao: Magika chua tra /health — xem: docker logs $containerName" -ForegroundColor Yellow
+    Write-Host "  Canh bao: Magika chua tra /health - xem: docker logs $containerName" -ForegroundColor Yellow
 }
 
 Write-Host "MyChatApp Backend (application.yml + .env)" -ForegroundColor Green
@@ -212,7 +210,7 @@ if (-not (Test-CommandExists "npm")) {
 
 # 0. Dong bo .env tu CDK (tuy chon)
 if ($SyncCdkEnv) {
-    Write-Step "Dong bo .env tu CDK stack (S3, CloudFront)"
+    Write-Step "Dong bo .env tu CDK stack [S3, CloudFront]"
     if (Test-CommandExists "aws") {
         & (Join-Path $PSScriptRoot "sync-cdk-env.ps1")
     } else {
@@ -232,7 +230,7 @@ if (Test-Path $envPath) {
 
 # 1. Docker (PostgreSQL + RabbitMQ + Valkey)
 if (-not $SkipDocker) {
-    Write-Step "Khoi dong Docker Compose (postgres, rabbitmq, valkey)"
+    Write-Step "Khoi dong Docker Compose [postgres, rabbitmq, valkey]"
     if (-not (Test-CommandExists "docker")) {
         throw "Chua cai Docker. Cai Docker Desktop hoac chay voi -SkipDocker neu da chay san."
     }
@@ -245,7 +243,7 @@ if (-not $SkipDocker) {
     if (-not (Wait-TcpPort -Port 5433)) {
         Write-Host "  Canh bao: PostgreSQL Docker chua lang nghe port 5433" -ForegroundColor Yellow
     } else {
-        Write-Host "  PostgreSQL Docker san sang (5433 — tranh xung dot PG may 5432)" -ForegroundColor DarkGray
+        Write-Host "  PostgreSQL Docker san sang (5433 - tranh xung dot PG may 5432)" -ForegroundColor DarkGray
     }
     if (-not (Wait-TcpPort -Port 5673)) {
         throw "RabbitMQ Docker chua san sang tai port 5673"
@@ -255,12 +253,12 @@ if (-not $SkipDocker) {
         Write-Host "  Valkey san sang (6379)" -ForegroundColor DarkGray
     }
 } else {
-    Write-Step "Bo qua Docker (-SkipDocker)"
+    Write-Step "Bo qua Docker [-SkipDocker]"
 }
 
 # 2. Build common
 if (-not $SkipBuild) {
-    Write-Step "Build module common (mvn install)"
+    Write-Step "Build module common [mvn install]"
     Push-Location (Join-Path $RootDir "common")
     .\mvnw.cmd install -DskipTests
     if ($LASTEXITCODE -ne 0) {
@@ -270,7 +268,7 @@ if (-not $SkipBuild) {
     Pop-Location
     Write-Host "  common da install vao local Maven repo" -ForegroundColor DarkGray
 
-    Write-Step "npm install media-service (Node/Express)"
+    Write-Step "npm install media-service [Node/Express]"
     Push-Location (Join-Path $RootDir "media-service")
     npm install
     if ($LASTEXITCODE -ne 0) {
@@ -280,23 +278,23 @@ if (-not $SkipBuild) {
     Pop-Location
     Write-Host "  media-service dependencies san sang" -ForegroundColor DarkGray
 } else {
-    Write-Step "Bo qua build (-SkipBuild)"
+    Write-Step "Bo qua build [-SkipBuild]"
 }
 
-# 2b. Magika sidecar (Docker — media-service goi MAGIKA_SERVICE_URL)
+# 2b. Magika sidecar (Docker - media-service goi MAGIKA_SERVICE_URL)
 if (-not $SkipMagika) {
     if (-not (Test-CommandExists "docker")) {
-        Write-Host "  Canh bao: bo qua magika — chua co Docker" -ForegroundColor Yellow
+        Write-Host "  Canh bao: bo qua magika - chua co Docker" -ForegroundColor Yellow
     } else {
-        Write-Step "Khoi dong magika-service (Docker, port 8090)"
+        Write-Step "Khoi dong magika-service [Docker, port 8090]"
         Start-MagikaDocker -Port 8090
     }
 } else {
-    Write-Step "Bo qua magika (-SkipMagika)"
+    Write-Step "Bo qua magika [-SkipMagika]"
 }
 
 # 3. Microservices (gateway chay sau cung)
-Write-Step "Khoi dong cac microservice (moi service mot cua so PowerShell)"
+Write-Step "Khoi dong cac microservice [moi service mot cua so PowerShell]"
 
 $services = @(
     @{ Name = "auth-service";         Dir = "auth-service";         Port = 8081; Delay = 0;  Runtime = "java" },
@@ -313,24 +311,23 @@ foreach ($svc in $services) {
 }
 
 Write-Step "Hoan tat"
-Write-Host @"
 
-Cac dich vu:
-  API Gateway       http://localhost:8080
-  Auth              http://localhost:8081
-  Chat              http://localhost:8082
-  User (+ Friends)  http://localhost:8083
-  Media (Node/S3)    http://localhost:8085  -> /api/media/presigned-upload
-  Notification      http://localhost:8084
-  Magika (Docker)   http://localhost:8090/health
-  RabbitMQ UI       http://localhost:15673  (guest/guest)
-  Valkey            localhost:6379
-
-Infra S3/CDN:
-  .\scripts\deploy-infra.ps1     # CDK deploy + cap nhat .env
-  .\scripts\sync-cdk-env.ps1      # chi cap nhat S3_BUCKET, MEDIA_PUBLIC_BASE_URL
-
-Dung lenh sau de dung:
-  .\scripts\stop-dev.ps1
-
-"@ -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Cac dich vu:" -ForegroundColor Yellow
+Write-Host "  API Gateway       http://localhost:8080" -ForegroundColor Yellow
+Write-Host "  Auth              http://localhost:8081" -ForegroundColor Yellow
+Write-Host "  Chat              http://localhost:8082" -ForegroundColor Yellow
+Write-Host "  User [+ Friends]  http://localhost:8083" -ForegroundColor Yellow
+Write-Host "  Media [Node/S3]   http://localhost:8085  -> /api/media/presigned-upload" -ForegroundColor Yellow
+Write-Host "  Notification      http://localhost:8084" -ForegroundColor Yellow
+Write-Host "  Magika [Docker]   http://localhost:8090/health" -ForegroundColor Yellow
+Write-Host "  RabbitMQ UI       http://localhost:15673  (guest/guest)" -ForegroundColor Yellow
+Write-Host "  Valkey            localhost:6379" -ForegroundColor Yellow
+Write-Host "" -ForegroundColor Yellow
+Write-Host "Infra S3/CDN:" -ForegroundColor Yellow
+Write-Host "  .\scripts\deploy-infra.ps1     # CDK deploy + cap nhat .env" -ForegroundColor Yellow
+Write-Host "  .\scripts\sync-cdk-env.ps1     # chi cap nhat S3_BUCKET, MEDIA_PUBLIC_BASE_URL" -ForegroundColor Yellow
+Write-Host "" -ForegroundColor Yellow
+Write-Host "Dung lenh sau de dung:" -ForegroundColor Yellow
+Write-Host "  .\scripts\stop-dev.ps1" -ForegroundColor Yellow
+Write-Host ""

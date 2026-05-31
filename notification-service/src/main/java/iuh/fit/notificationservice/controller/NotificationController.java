@@ -14,10 +14,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/notifications")
-@RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationService notificationService;
+
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
 
     @GetMapping("/user/{userId}")
     public ApiResponse<List<Notification>> getByUser(@PathVariable String userId) {

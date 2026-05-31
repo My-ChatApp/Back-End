@@ -30,7 +30,13 @@ class MailConsumerTest {
 
     @Test
     void handleUserRegistered_disabled_skipsSes() {
-        UserRegisteredEvent event = new UserRegisteredEvent("id-1", "user@b.com", "user1");
+        UserRegisteredEvent event =
+                new UserRegisteredEvent(
+                        "test@gmail.com",
+                        "devil",
+                        "123456",
+                        5
+                );
 
         mailConsumer.handleUserRegistered(event);
 
@@ -40,7 +46,13 @@ class MailConsumerTest {
     @Test
     void handleUserRegistered_enabled_sendsMail() {
         ReflectionTestUtils.setField(mailConsumer, "registrationMailEnabled", true);
-        UserRegisteredEvent event = new UserRegisteredEvent("id-1", "user@b.com", "user1");
+        UserRegisteredEvent event =
+                new UserRegisteredEvent(
+                        "test@gmail.com",
+                        "devil",
+                        "123456",
+                        5
+                );
 
         mailConsumer.handleUserRegistered(event);
 

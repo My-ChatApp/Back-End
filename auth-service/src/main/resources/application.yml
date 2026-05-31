@@ -21,10 +21,25 @@ spring:
     port: ${RABBITMQ_PORT:5673}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2000}
+      timeout: ${REDIS_TIMEOUT:2000}
+      lettuce:
+        pool:
+          max-active: ${REDIS_POOL_MAX_ACTIVE:8}
+          max-idle: ${REDIS_POOL_MAX_IDLE:8}
+          min-idle: ${REDIS_POOL_MIN_IDLE:0}
+          max-wait: ${REDIS_POOL_MAX_WAIT:-1ms}
 
 rabbitmq:
   exchange: ${RABBITMQ_EXCHANGE:auth.exchange}
   routing-key: ${RABBITMQ_ROUTING_KEY:auth.registered}
+  password-reset:
+    routing-key: ${RABBITMQ_PASSWORD_RESET_ROUTING_KEY:auth.password-reset}
 
 media:
   public-base-url: ${MEDIA_PUBLIC_BASE_URL:}
@@ -32,9 +47,19 @@ media:
 server:
   port: ${AUTH_SERVICE_PORT:8081}
 
+otp:
+  expiry-minutes: ${OTP_EXPIRY_MINUTES:5}
+  length: ${OTP_LENGTH:6}
+  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
+
+password-reset:
+  token-expiry-minutes: ${PASSWORD_RESET_TOKEN_EXPIRY_MINUTES:15}
+  reset-link: ${PASSWORD_RESET_RESET_LINK:http://localhost:3000/reset-password}
+  max-attempts: ${PASSWORD_RESET_MAX_ATTEMPTS:3}
 
 logging:
   level:

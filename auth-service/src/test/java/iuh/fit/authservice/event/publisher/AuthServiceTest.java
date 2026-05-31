@@ -6,6 +6,8 @@ import iuh.fit.authservice.entity.User;
 import iuh.fit.authservice.event.payload.UserRegisteredEvent;
 import iuh.fit.authservice.exception.UserAlreadyExistsException;
 import iuh.fit.authservice.repository.UserRepository;
+import iuh.fit.authservice.service.OtpService;
+import iuh.fit.authservice.service.PendingRegistrationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +46,12 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    @Mock
+    private OtpService otpService;
+
+    @Mock
+    private PendingRegistrationService pendingRegistrationService;
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "exchange", "test.exchange");
@@ -70,25 +78,56 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_success_savesAndPublishesEvent() {
-        RegisterRequest request = new RegisterRequest("new@b.com", "newuser", "secret12");
-        when(userRepository.existsByEmail("new@b.com")).thenReturn(false);
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(mediaProperties.defaultAvatarUrl()).thenReturn("https://cdn.example.com/static/default-avatar.jpg");
-        when(encoder.encode("secret12")).thenReturn("hashed");
+    void register_success_publishOtpEvent() {
+        RegisterRequest request =
+                new RegisterRequest(
+                        "new@b.com",
+                        "newuser",
+                        "secret12"
+                );
 
-        User saved = new User("new@b.com", "newuser", "hashed");
-        saved.setId(UUID.randomUUID());
-        when(userRepository.save(any(User.class))).thenReturn(saved);
+        when(userRepository.existsByEmail("new@b.com"))
+                .thenReturn(false);
+
+        when(userRepository.existsByUsername("newuser"))
+                .thenReturn(false);
+
+        when(otpService.sendOtp("new@b.com"))
+                .thenReturn("123456");
 
         authService.register(request);
 
-        verify(encoder).encode("secret12");
-        verify(userRepository).save(any(User.class));
-        ArgumentCaptor<UserRegisteredEvent> captor = ArgumentCaptor.forClass(UserRegisteredEvent.class);
+        verify(pendingRegistrationService).save(request);
+
+        ArgumentCaptor<UserRegisteredEvent> captor =
+                ArgumentCaptor.forClass(UserRegisteredEvent.class);
+
         verify(rabbitTemplate).convertAndSend(
-                eq("test.exchange"), eq("user.registered"), captor.capture());
-        org.junit.jupiter.api.Assertions.assertEquals(saved.getId().toString(), captor.getValue().getId());
-        org.junit.jupiter.api.Assertions.assertEquals("new@b.com", captor.getValue().getEmail());
+                eq("test.exchange"),
+                eq("user.registered"),
+                captor.capture()
+        );
+
+        UserRegisteredEvent event = captor.getValue();
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "new@b.com",
+                event.getEmail()
+        );
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "newuser",
+                event.getUsername()
+        );
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "123456",
+                event.getOtp()
+        );
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                5,
+                event.getOtpExpiryMinutes()
+        );
     }
 }
