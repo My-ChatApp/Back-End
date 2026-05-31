@@ -52,6 +52,18 @@ Queue RabbitMQ **đã tạo trước đó** không thể thêm `x-dead-letter-ex
 3. Khởi động lại `chat-service` — kiểm tra queue mới có argument `x-dead-letter-exchange` = `chat.internal.dlx`.
 4. Poison message (vd. event với `conversationId` không tồn tại) sau ~5 retry sẽ vào `chat.persist.dlq` thay vì requeue vô hạn.
 
+### chat-service: Outbox (`app.outbox_events`)
+
+Bảng outbox nằm trong `infra/postgres/init/04-outbox-events.sql` — chỉ tự chạy khi volume Postgres **mới**.
+
+Volume Postgres **đã tồn tại** (upgrade code):
+
+```powershell
+powershell -File infra/postgres/migrate-outbox.ps1
+```
+
+Kiểm tra: `docker exec -it mychatapp-postgres psql -U mychatapp -d mychatapp -c "\d app.outbox_events"`
+
 ### Valkey / ElastiCache (production)
 
 Local: `SPRING_DATA_REDIS_HOST=localhost`, `SPRING_DATA_REDIS_SSL_ENABLED=false`.

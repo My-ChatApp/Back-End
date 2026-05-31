@@ -5,7 +5,7 @@ import iuh.fit.chatservice.entity.Conversation;
 import iuh.fit.chatservice.entity.ConversationMember;
 import iuh.fit.chatservice.entity.enums.MemberRole;
 import iuh.fit.chatservice.entity.enums.MessageType;
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.model.ChatMessage;
 import iuh.fit.chatservice.repository.ConversationMemberRepository;
 import iuh.fit.chatservice.repository.ConversationRepository;
@@ -38,7 +38,7 @@ class ChatCommandServiceTest {
     @Mock
     private ChatSpaceRepository chatSpaceRepository;
     @Mock
-    private ChatInternalEventPublisher internalEventPublisher;
+    private OutboxService outboxService;
     @Mock
     private ConversationRepository conversationRepository;
     @Mock

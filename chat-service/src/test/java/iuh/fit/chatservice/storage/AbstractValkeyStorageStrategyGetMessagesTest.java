@@ -2,7 +2,7 @@ package iuh.fit.chatservice.storage;
 
 import iuh.fit.chatservice.dto.response.MessagesPageResponse;
 import iuh.fit.chatservice.entity.enums.MessageType;
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.model.ChatMessage;
 import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
@@ -40,14 +40,14 @@ class AbstractValkeyStorageStrategyGetMessagesTest {
     private ChatMessageRepository chatMessageRepository;
 
     @Mock
-    private ChatInternalEventPublisher internalEventPublisher;
+    private OutboxService outboxService;
 
     private ValkeyAsyncDynamoStorageStrategy strategy;
 
     @BeforeEach
     void setUp() {
         strategy = new ValkeyAsyncDynamoStorageStrategy(
-                chatSpaceRepository, chatMessageRepository, internalEventPublisher);
+                chatSpaceRepository, chatMessageRepository, outboxService);
     }
 
     @Test
@@ -63,7 +63,7 @@ class AbstractValkeyStorageStrategyGetMessagesTest {
         assertFalse(result.isLoading());
         assertFalse(result.isHasMore());
         assertTrue(result.getMessages().isEmpty());
-        verify(internalEventPublisher, never()).publishHistoryLoadRequested(any());
+        verify(outboxService, never()).enqueueHistoryLoadRequested(any());
     }
 
     @Test
@@ -80,7 +80,7 @@ class AbstractValkeyStorageStrategyGetMessagesTest {
 
         assertTrue(result.isLoading());
         assertTrue(result.isHasMore());
-        verify(internalEventPublisher).publishHistoryLoadRequested(any());
+        verify(outboxService).enqueueHistoryLoadRequested(any());
     }
 
     @Test
@@ -102,7 +102,7 @@ class AbstractValkeyStorageStrategyGetMessagesTest {
         assertFalse(result.isLoading());
         assertFalse(result.isHasMore());
         assertEquals(5, result.getMessages().size());
-        verify(internalEventPublisher, never()).publishHistoryLoadRequested(any());
+        verify(outboxService, never()).enqueueHistoryLoadRequested(any());
     }
 
     private static ChatMessage cursorMessage() {

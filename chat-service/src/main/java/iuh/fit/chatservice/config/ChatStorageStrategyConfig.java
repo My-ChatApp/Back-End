@@ -1,6 +1,6 @@
 package iuh.fit.chatservice.config;
 
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
 import iuh.fit.chatservice.storage.ChatStorageStrategy;
@@ -19,16 +19,16 @@ public class ChatStorageStrategyConfig {
             ChatSpaceProperties chatSpaceProperties,
             ChatMessageRepository chatMessageRepository,
             ObjectProvider<ChatSpaceRepository> chatSpaceRepositoryProvider,
-            ChatInternalEventPublisher internalEventPublisher) {
+            OutboxService outboxService) {
         if (!chatSpaceProperties.isEnabled()) {
             return new DynamoDbOnlyStorageStrategy(chatMessageRepository);
         }
         ChatSpaceRepository chatSpaceRepository = chatSpaceRepositoryProvider.getObject();
         if (chatSpaceProperties.isDualWriteDynamodb()) {
             return new ValkeyDualWriteStorageStrategy(
-                    chatSpaceRepository, chatMessageRepository, internalEventPublisher);
+                    chatSpaceRepository, chatMessageRepository, outboxService);
         }
         return new ValkeyAsyncDynamoStorageStrategy(
-                chatSpaceRepository, chatMessageRepository, internalEventPublisher);
+                chatSpaceRepository, chatMessageRepository, outboxService);
     }
 }
