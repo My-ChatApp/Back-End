@@ -9,6 +9,7 @@ import iuh.fit.chatservice.entity.enums.MemberRole;
 import iuh.fit.chatservice.entity.enums.TypeRoom;
 import iuh.fit.chatservice.exception.ForbiddenException;
 import iuh.fit.chatservice.exception.ResourceNotFoundException;
+import iuh.fit.chatservice.event.payload.ChatRealtimeEnvelope;
 import iuh.fit.chatservice.repository.ConversationMemberRepository;
 import iuh.fit.chatservice.repository.ConversationRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class ConversationMemberService {
     private final ConversationRepository conversationRepository;
     private final ConversationAccessService conversationAccessService;
     private final ConversationInboxNotifier conversationInboxNotifier;
+    private final ChatRealtimeBroadcastService realtimeBroadcastService;
 
     @Transactional(readOnly = true)
     public List<ConversationMember> listByConversation(UUID conversationId, UUID actorUserId) {
@@ -142,7 +144,24 @@ public class ConversationMemberService {
         if (conversation.getLastMessageId() != null) {
             member.setLastReadMessageId(conversation.getLastMessageId());
         }
-        return memberRepository.save(member);
+        ConversationMember saved = memberRepository.save(member);
+        broadcastReadReceipt(conversationId, saved);
+        return saved;
+    }
+
+    private void broadcastReadReceipt(UUID conversationId, ConversationMember member) {
+        String lastReadMessageId = member.getLastReadMessageId() != null
+                ? member.getLastReadMessageId().toString()
+                : null;
+        realtimeBroadcastService.broadcast(
+                conversationId.toString(),
+                ChatRealtimeEnvelope.builder()
+                        .eventType(ChatRealtimeEnvelope.EventType.READ_RECEIPT)
+                        .conversationId(conversationId.toString())
+                        .userId(member.getUserId().toString())
+                        .lastReadMessageId(lastReadMessageId)
+                        .lastReadAt(member.getLastReadAt())
+                        .build());
     }
 
     @Transactional
