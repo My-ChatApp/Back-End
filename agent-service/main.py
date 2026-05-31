@@ -4,11 +4,29 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
+
 import os
 import re
 import traceback
+from pathlib import Path
 
-load_dotenv()
+
+# =========================
+# LOAD ENV
+# =========================
+
+BASE_DIR = Path(__file__).resolve().parent
+ENV_PATH = BASE_DIR.parent / ".env"
+
+load_dotenv(dotenv_path=ENV_PATH)
+
+print("ENV FILE:", ENV_PATH)
+print("ENV EXISTS:", ENV_PATH.exists())
+
+
+# =========================
+# FASTAPI
+# =========================
 
 app = FastAPI(
     title="ChatBot Agent Service",
@@ -65,6 +83,7 @@ Khi người dùng tag @ChatBot và đưa ra yêu cầu, bạn sẽ giúp họ s
 văn bản hay trả lời các câu hỏi một cách chuyên nghiệp.
 
 Hướng dẫn:
+
 - Luôn trả lời bằng ngôn ngữ mà người dùng sử dụng
 - Với yêu cầu soạn tin nhắn/văn bản: chỉ trả về nội dung cần soạn
 - Với câu hỏi thông thường: trả lời trực tiếp, súc tích
@@ -184,7 +203,9 @@ async def health():
     return {
         "status": "ok",
         "api_key_configured": is_valid_groq_api_key(api_key),
-        "key_prefix": api_key[:10] if api_key else None
+        "key_prefix": api_key[:10] if api_key else None,
+        "env_file": str(ENV_PATH),
+        "env_exists": ENV_PATH.exists()
     }
 
 
@@ -192,10 +213,12 @@ async def health():
 # STATIC FILES
 # =========================
 
-if os.path.exists("static"):
+STATIC_DIR = BASE_DIR / "static"
+
+if STATIC_DIR.exists():
     app.mount(
         "/",
-        StaticFiles(directory="static", html=True),
+        StaticFiles(directory=str(STATIC_DIR), html=True),
         name="static"
     )
 
