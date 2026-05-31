@@ -1,8 +1,10 @@
 package iuh.fit.chatservice.model;
 
 import iuh.fit.chatservice.entity.enums.MessageType;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -10,6 +12,8 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ChatMessage {
 
     private String messageId;

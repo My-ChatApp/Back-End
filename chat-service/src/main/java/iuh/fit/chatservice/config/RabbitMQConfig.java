@@ -50,6 +50,21 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.internal.updated-routing-key:chat.message.updated}")
     private String updatedRoutingKey;
 
+    @Value("${rabbitmq.internal.dlx:chat.internal.dlx}")
+    private String internalDlxName;
+
+    @Value("${rabbitmq.internal.persist-dlq:chat.persist.dlq}")
+    private String persistDlqName;
+
+    @Value("${rabbitmq.internal.persist-dlq-routing-key:chat.persist.dlq}")
+    private String persistDlqRoutingKey;
+
+    @Value("${rabbitmq.internal.hydrate-dlq:chat.hydrate.dlq}")
+    private String hydrateDlqName;
+
+    @Value("${rabbitmq.internal.hydrate-dlq-routing-key:chat.hydrate.dlq}")
+    private String hydrateDlqRoutingKey;
+
     @Bean
     public TopicExchange chatExchange() {
         return new TopicExchange(chatExchangeName);
@@ -86,13 +101,44 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange chatInternalDlx() {
+        return new TopicExchange(internalDlxName);
+    }
+
+    @Bean
+    public Queue chatPersistDlq() {
+        return QueueBuilder.durable(persistDlqName).build();
+    }
+
+    @Bean
+    public Queue chatHydrateDlq() {
+        return QueueBuilder.durable(hydrateDlqName).build();
+    }
+
+    @Bean
+    public Binding chatPersistDlqBinding(Queue chatPersistDlq, TopicExchange chatInternalDlx) {
+        return BindingBuilder.bind(chatPersistDlq).to(chatInternalDlx).with(persistDlqRoutingKey);
+    }
+
+    @Bean
+    public Binding chatHydrateDlqBinding(Queue chatHydrateDlq, TopicExchange chatInternalDlx) {
+        return BindingBuilder.bind(chatHydrateDlq).to(chatInternalDlx).with(hydrateDlqRoutingKey);
+    }
+
+    @Bean
     public Queue chatPersistQueue() {
-        return QueueBuilder.durable(persistQueueName).build();
+        return QueueBuilder.durable(persistQueueName)
+                .deadLetterExchange(internalDlxName)
+                .deadLetterRoutingKey(persistDlqRoutingKey)
+                .build();
     }
 
     @Bean
     public Queue chatHydrateQueue() {
-        return QueueBuilder.durable(hydrateQueueName).build();
+        return QueueBuilder.durable(hydrateQueueName)
+                .deadLetterExchange(internalDlxName)
+                .deadLetterRoutingKey(hydrateDlqRoutingKey)
+                .build();
     }
 
     @Bean

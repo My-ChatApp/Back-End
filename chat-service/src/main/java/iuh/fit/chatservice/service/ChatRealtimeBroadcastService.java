@@ -42,9 +42,12 @@ public class ChatRealtimeBroadcastService {
     }
 
     public void localBroadcast(String conversationId, ChatRealtimeEnvelope envelope) {
-        Object payload = envelope.getEventType() == ChatRealtimeEnvelope.EventType.MESSAGE_CREATED
-                ? envelope.getMessage()
-                : envelope;
+        Object payload;
+        if (envelope.getEventType() == ChatRealtimeEnvelope.EventType.MESSAGE_CREATED) {
+            payload = envelope.getMessage();
+        } else {
+            payload = envelope;
+        }
         messagingTemplate.convertAndSend(topicPrefix + "/conversation/" + conversationId, payload);
     }
 }

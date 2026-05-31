@@ -14,7 +14,7 @@ public class ChatSpaceProperties {
     private boolean enabled = true;
     private int timelineMaxSize = 300;
     /** Số tin tối đa mỗi lần GET /messages (mặc định). */
-    private int defaultPageSize = 10;
-    private int hydrateBatchSize = 10;
+    private int defaultPageSize = 20;
+    private int hydrateBatchSize = 20;
     private boolean dualWriteDynamodb = false;
 }

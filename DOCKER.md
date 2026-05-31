@@ -43,6 +43,15 @@ PostgreSQL: schema tự chạy lần đầu từ `infra/postgres/init/*.sql` (ch
 - Valkey: `docker exec -it mychatapp-valkey valkey-cli ping` → `PONG`
 - Magika: `curl -s http://localhost:8090/health` (DockerTest: `.\DockerTest\up.ps1`, hoặc `docker build -f magika-service/Dockerfile -t mychatapp:magika-v1 ./magika-service` — xem [`magika-service/README.md`](./magika-service/README.md))
 
+### chat-service: Retry + DLQ (lần đầu bật hoặc sau khi đổi cấu hình DLX)
+
+Queue RabbitMQ **đã tạo trước đó** không thể thêm `x-dead-letter-exchange`. Sau khi pull code có DLQ:
+
+1. Dừng `chat-service`.
+2. RabbitMQ Management → **Queues** → xóa `chat.persist.queue` và `chat.hydrate.queue` (message chưa ack sẽ mất; DLQ tạo mới khi app start).
+3. Khởi động lại `chat-service` — kiểm tra queue mới có argument `x-dead-letter-exchange` = `chat.internal.dlx`.
+4. Poison message (vd. event với `conversationId` không tồn tại) sau ~5 retry sẽ vào `chat.persist.dlq` thay vì requeue vô hạn.
+
 ### Valkey / ElastiCache (production)
 
 Local: `SPRING_DATA_REDIS_HOST=localhost`, `SPRING_DATA_REDIS_SSL_ENABLED=false`.
