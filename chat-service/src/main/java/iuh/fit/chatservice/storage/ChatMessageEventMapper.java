@@ -5,12 +5,12 @@ import iuh.fit.chatservice.model.ChatMessage;
 
 import java.util.List;
 
-final class ChatMessageEventMapper {
+public final class ChatMessageEventMapper {
 
     private ChatMessageEventMapper() {
     }
 
-    static ChatMessageCreatedEvent toCreatedEvent(ChatMessage message, List<String> receiverIds) {
+    public static ChatMessageCreatedEvent toCreatedEvent(ChatMessage message, List<String> receiverIds) {
         return ChatMessageCreatedEvent.builder()
                 .messageId(message.getMessageId())
                 .conversationId(message.getConversationId())

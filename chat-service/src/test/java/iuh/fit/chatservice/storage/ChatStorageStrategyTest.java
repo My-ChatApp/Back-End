@@ -1,21 +1,18 @@
 package iuh.fit.chatservice.storage;
 
 import iuh.fit.chatservice.entity.enums.MessageType;
-import iuh.fit.chatservice.event.payload.ChatMessageCreatedEvent;
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
 import iuh.fit.chatservice.model.ChatMessage;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -30,7 +27,7 @@ class ChatStorageStrategyTest {
     private ChatMessageRepository chatMessageRepository;
 
     @Mock
-    private ChatInternalEventPublisher internalEventPublisher;
+    private OutboxService outboxService;
 
     @Test
     void dynamoDbOnly_persist_savesWithoutPublish() {
@@ -40,37 +37,33 @@ class ChatStorageStrategyTest {
         strategy.persistNewMessage(message, List.of("receiver-1"));
 
         verify(chatMessageRepository).save(message);
-        verifyNoInteractions(chatSpaceRepository, internalEventPublisher);
+        verifyNoInteractions(chatSpaceRepository, outboxService);
     }
 
     @Test
-    void valkeyAsync_persist_appendsAndPublishesWithoutSyncSave() {
+    void valkeyAsync_persist_appendsAndEnqueuesWithoutSyncSave() {
         ValkeyAsyncDynamoStorageStrategy strategy = new ValkeyAsyncDynamoStorageStrategy(
-                chatSpaceRepository, chatMessageRepository, internalEventPublisher);
+                chatSpaceRepository, chatMessageRepository, outboxService);
         ChatMessage message = sampleMessage();
 
         strategy.persistNewMessage(message, List.of("receiver-1"));
 
         verify(chatSpaceRepository).appendMessage(message);
         verify(chatMessageRepository, never()).save(message);
-
-        ArgumentCaptor<ChatMessageCreatedEvent> eventCaptor = ArgumentCaptor.forClass(ChatMessageCreatedEvent.class);
-        verify(internalEventPublisher).publishMessageCreated(eventCaptor.capture());
-        assertEquals(message.getMessageId(), eventCaptor.getValue().getMessageId());
-        assertEquals(List.of("receiver-1"), eventCaptor.getValue().getReceiverIds());
+        verify(outboxService).enqueueMessageCreated(message, List.of("receiver-1"));
     }
 
     @Test
-    void valkeyDualWrite_persist_appendsSavesAndPublishes() {
+    void valkeyDualWrite_persist_appendsSavesAndEnqueues() {
         ValkeyDualWriteStorageStrategy strategy = new ValkeyDualWriteStorageStrategy(
-                chatSpaceRepository, chatMessageRepository, internalEventPublisher);
+                chatSpaceRepository, chatMessageRepository, outboxService);
         ChatMessage message = sampleMessage();
 
         strategy.persistNewMessage(message, List.of("receiver-1"));
 
         verify(chatSpaceRepository).appendMessage(message);
         verify(chatMessageRepository).save(message);
-        verify(internalEventPublisher).publishMessageCreated(org.mockito.ArgumentMatchers.any());
+        verify(outboxService).enqueueMessageCreated(message, List.of("receiver-1"));
     }
 
     private static ChatMessage sampleMessage() {

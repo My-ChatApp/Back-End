@@ -2,8 +2,8 @@ package iuh.fit.chatservice.storage;
 
 import iuh.fit.chatservice.dto.response.MessagesPageResponse;
 import iuh.fit.chatservice.event.payload.ConversationHistoryLoadRequestedEvent;
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
 import iuh.fit.chatservice.model.ChatMessage;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public abstract class AbstractValkeyStorageStrategy implements ChatStorageStrate
 
     protected final ChatSpaceRepository chatSpaceRepository;
     protected final ChatMessageRepository chatMessageRepository;
-    protected final ChatInternalEventPublisher internalEventPublisher;
+    protected final OutboxService outboxService;
 
     @Override
     public MessagesPageResponse getMessages(
@@ -82,8 +82,7 @@ public abstract class AbstractValkeyStorageStrategy implements ChatStorageStrate
     }
 
     protected void publishMessageCreated(ChatMessage message, List<String> receiverIds) {
-        internalEventPublisher.publishMessageCreated(
-                ChatMessageEventMapper.toCreatedEvent(message, receiverIds));
+        outboxService.enqueueMessageCreated(message, receiverIds);
     }
 
     private MessagesPageResponse coldStartFromDynamo(String conversationId, int limit) {
@@ -111,7 +110,7 @@ public abstract class AbstractValkeyStorageStrategy implements ChatStorageStrate
             log.debug("Hydrate already in progress for conv {}", conversationId);
             return;
         }
-        internalEventPublisher.publishHistoryLoadRequested(ConversationHistoryLoadRequestedEvent.builder()
+        outboxService.enqueueHistoryLoadRequested(ConversationHistoryLoadRequestedEvent.builder()
                 .conversationId(conversationId)
                 .userId(userId)
                 .beforeMessageId(beforeMessageId)
