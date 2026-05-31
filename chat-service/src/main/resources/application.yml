@@ -21,6 +21,16 @@ spring:
     port: ${RABBITMQ_PORT:5673}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Tránh requeue vô hạn; sau retry hết → reject → DLQ (x-dead-letter-exchange trên queue)
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: ${RABBITMQ_LISTENER_RETRY_MAX_ATTEMPTS:5}
+          initial-interval: ${RABBITMQ_LISTENER_RETRY_INITIAL_INTERVAL:2s}
+          multiplier: ${RABBITMQ_LISTENER_RETRY_MULTIPLIER:2.0}
+          max-interval: ${RABBITMQ_LISTENER_RETRY_MAX_INTERVAL:30s}
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
@@ -33,8 +43,8 @@ chat:
   space:
     enabled: ${CHAT_SPACE_ENABLED:true}
     timeline-max-size: ${CHAT_SPACE_TIMELINE_MAX_SIZE:300}
-    default-page-size: ${CHAT_SPACE_DEFAULT_PAGE_SIZE:10}
-    hydrate-batch-size: ${CHAT_SPACE_HYDRATE_BATCH_SIZE:10}
+    default-page-size: ${CHAT_SPACE_DEFAULT_PAGE_SIZE:20}
+    hydrate-batch-size: ${CHAT_SPACE_HYDRATE_BATCH_SIZE:20}
     dual-write-dynamodb: ${CHAT_SPACE_DUAL_WRITE_DYNAMODB:false}
     redis-fanout-enabled: ${CHAT_SPACE_REDIS_FANOUT_ENABLED:false}
 
@@ -56,6 +66,11 @@ rabbitmq:
     hydrate-queue: ${RABBITMQ_CHAT_HYDRATE_QUEUE:chat.hydrate.queue}
     hydrate-routing-key: ${RABBITMQ_CHAT_HYDRATE_ROUTING_KEY:chat.history.load}
     updated-routing-key: ${RABBITMQ_CHAT_UPDATED_ROUTING_KEY:chat.message.updated}
+    dlx: ${RABBITMQ_CHAT_INTERNAL_DLX:chat.internal.dlx}
+    persist-dlq: ${RABBITMQ_CHAT_PERSIST_DLQ:chat.persist.dlq}
+    persist-dlq-routing-key: ${RABBITMQ_CHAT_PERSIST_DLQ_ROUTING_KEY:chat.persist.dlq}
+    hydrate-dlq: ${RABBITMQ_CHAT_HYDRATE_DLQ:chat.hydrate.dlq}
+    hydrate-dlq-routing-key: ${RABBITMQ_CHAT_HYDRATE_DLQ_ROUTING_KEY:chat.hydrate.dlq}
 
 mychatapp:
   dynamodb:
