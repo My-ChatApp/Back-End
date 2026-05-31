@@ -6,7 +6,7 @@ import iuh.fit.chatservice.entity.Conversation;
 import iuh.fit.chatservice.entity.enums.MessageType;
 import iuh.fit.chatservice.event.payload.ChatMessageUpdatedEvent;
 import iuh.fit.chatservice.event.payload.ChatRealtimeEnvelope;
-import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
+import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.model.ChatMessage;
 import iuh.fit.chatservice.model.MessageAttachmentDto;
 import iuh.fit.chatservice.repository.ConversationMemberRepository;
@@ -29,7 +29,7 @@ public class ChatCommandService {
 
     private final ChatStorageStrategy chatStorageStrategy;
     private final ChatSpaceRepository chatSpaceRepository;
-    private final ChatInternalEventPublisher internalEventPublisher;
+    private final OutboxService outboxService;
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository conversationMemberRepository;
     private final ChatRealtimeBroadcastService realtimeBroadcastService;
@@ -114,7 +114,7 @@ public class ChatCommandService {
         existing.setEditedAt(now);
         chatSpaceRepository.updateMessage(existing);
 
-        internalEventPublisher.publishMessageUpdated(ChatMessageUpdatedEvent.builder()
+        outboxService.enqueueMessageUpdated(ChatMessageUpdatedEvent.builder()
                 .messageId(existing.getMessageId())
                 .conversationId(existing.getConversationId())
                 .senderId(existing.getSenderId())
