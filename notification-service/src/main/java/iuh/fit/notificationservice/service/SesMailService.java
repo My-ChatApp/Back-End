@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.sesv2.model.EmailContent;
 import software.amazon.awssdk.services.sesv2.model.Message;
 import software.amazon.awssdk.services.sesv2.model.SendEmailRequest;
 
+
 @Service
 @RequiredArgsConstructor
 public class SesMailService {
@@ -41,6 +42,31 @@ public class SesMailService {
                                 .subject(Content.builder().data(subject).charset("UTF-8").build())
                                 .body(Body.builder()
                                         .text(Content.builder().data(body).charset("UTF-8").build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        sesClient.sendEmail(request);
+    }
+
+    public void sendHtml(String to, String subject, String htmlBody) {
+        if (!StringUtils.hasText(mailFrom)) {
+            throw new IllegalStateException("MAIL_FROM chưa cấu hình — cần email thuộc domain đã verify trên SES");
+        }
+
+        String fromAddress = StringUtils.hasText(mailFromName)
+                ? mailFromName + " <" + mailFrom + ">"
+                : mailFrom;
+
+        SendEmailRequest request = SendEmailRequest.builder()
+                .fromEmailAddress(fromAddress)
+                .destination(Destination.builder().toAddresses(to).build())
+                .content(EmailContent.builder()
+                        .simple(Message.builder()
+                                .subject(Content.builder().data(subject).charset("UTF-8").build())
+                                .body(Body.builder()
+                                        .html(Content.builder().data(htmlBody).charset("UTF-8").build())
                                         .build())
                                 .build())
                         .build())

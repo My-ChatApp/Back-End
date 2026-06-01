@@ -26,6 +26,18 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.mail.routing-key}")
     private String mailRoutingKey;
 
+    @Value("${rabbitmq.password-reset.queue:auth.password-reset.queue}")
+    private String passwordResetQueueName;
+
+    @Value("${rabbitmq.password-reset.routing-key:auth.password-reset}")
+    private String passwordResetRoutingKey;
+
+    @Value("${rabbitmq.password-reset-confirmation.queue:auth.password-reset-confirmed.queue}")
+    private String passwordResetConfirmationQueueName;
+
+    @Value("${rabbitmq.password-reset-confirmation.routing-key:auth.password-reset-confirmed}")
+    private String passwordResetConfirmationRoutingKey;
+
     @Bean
     public TopicExchange friendExchange() {
         return new TopicExchange(FRIEND_EXCHANGE);
@@ -69,6 +81,32 @@ public class RabbitMQConfig {
                 .bind(mailQueue)
                 .to(authExchange)
                 .with(mailRoutingKey);
+    }
+
+    @Bean
+    public Queue passwordResetQueue() {
+        return QueueBuilder.durable(passwordResetQueueName).build();
+    }
+
+    @Bean
+    public Binding passwordResetBinding(Queue passwordResetQueue, TopicExchange authExchange) {
+        return BindingBuilder
+                .bind(passwordResetQueue)
+                .to(authExchange)
+                .with(passwordResetRoutingKey);
+    }
+
+    @Bean
+    public Queue passwordResetConfirmationQueue() {
+        return QueueBuilder.durable(passwordResetConfirmationQueueName).build();
+    }
+
+    @Bean
+    public Binding passwordResetConfirmationBinding(Queue passwordResetConfirmationQueue, TopicExchange authExchange) {
+        return BindingBuilder
+                .bind(passwordResetConfirmationQueue)
+                .to(authExchange)
+                .with(passwordResetConfirmationRoutingKey);
     }
 
     @Bean

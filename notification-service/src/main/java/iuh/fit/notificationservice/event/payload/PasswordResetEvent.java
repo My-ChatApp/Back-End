@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserRegisteredEvent {
+public class PasswordResetEvent {
     private String email;
-    private String username;
-    private String otp;
-    private int otpExpiryMinutes;
+    private String resetToken;
+    private String resetLink;
+    private int expiryMinutes;
 }

@@ -45,6 +45,12 @@ rabbitmq:
     exchange: ${RABBITMQ_MAIL_EXCHANGE:auth.exchange}
     queue: ${RABBITMQ_MAIL_QUEUE:mail.queue}
     routing-key: ${RABBITMQ_MAIL_ROUTING_KEY:auth.registered}
+  password-reset:
+    queue: ${RABBITMQ_PASSWORD_RESET_QUEUE:auth.password-reset.queue}
+    routing-key: ${RABBITMQ_PASSWORD_RESET_ROUTING_KEY:auth.password-reset}
+  password-reset-confirmation:
+    queue: ${RABBITMQ_PASSWORD_RESET_CONFIRMATION_QUEUE:auth.password-reset-confirmed.queue}
+    routing-key: ${RABBITMQ_PASSWORD_RESET_CONFIRMATION_ROUTING_KEY:auth.password-reset-confirmed}
 
 logging:
   level:
