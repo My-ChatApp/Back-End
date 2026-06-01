@@ -32,6 +32,7 @@ services:
       USER_SERVICE_URI: http://user-service:8083
       NOTIFICATION_SERVICE_URI: http://notification-service:8084
       MEDIA_SERVICE_URI: http://media-service:8085
+      AGENT_SERVICE_URI: http://agent-service:8088
       SPRING_DATA_REDIS_HOST: valkey
       SPRING_DATA_REDIS_PORT: "6379"
     depends_on:
@@ -46,6 +47,8 @@ services:
       notification-service:
         condition: service_started
       media-service:
+        condition: service_started
+      agent-service:
         condition: service_started
 
   auth-service:
@@ -148,3 +151,15 @@ services:
     depends_on:
       magika:
         condition: service_started
+
+  agent-service:
+    image: mychatapp:agent-${IMAGE_TAG:-v1}
+    container_name: mychatapp-agent-service
+    restart: unless-stopped
+    pull_policy: never
+    ports:
+      - "8088:8088"
+    env_file:
+      - .env.docker
+    environment:
+      GROQ_API_KEY: ${GROQ_API_KEY:-}

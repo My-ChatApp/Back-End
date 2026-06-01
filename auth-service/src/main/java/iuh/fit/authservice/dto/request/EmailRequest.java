@@ -2,20 +2,16 @@ package iuh.fit.authservice.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-public class VerifyOtpRequest {
+public class EmailRequest {
+
     @NotBlank(message = "Email không được để trống")
     @Email(message = "Email không hợp lệ")
     private String email;
-
-    @NotBlank(message = "OTP không được để trống")
-    @Size(min = 4, max = 10, message = "OTP không hợp lệ")
-    private String otp;
 }

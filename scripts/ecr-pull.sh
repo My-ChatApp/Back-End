@@ -19,7 +19,7 @@ IMAGE_TAG="${IMAGE_TAG:-v1}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-mychatapp}"
 USE_SUDO="${USE_SUDO:-}"
 
-SERVICES=(gateway auth chat user notification media magika)
+SERVICES=(gateway auth chat user notification media magika agent)
 
 usage() {
   sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'

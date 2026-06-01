@@ -41,7 +41,7 @@ IMAGE_TAG="${IMAGE_TAG:-v1}"
 
 PREFIX="${IMAGE_PREFIX:-mychatapp}"
 MISSING=()
-for svc in gateway auth chat user notification media magika; do
+for svc in gateway auth chat user notification media magika agent; do
   img="${PREFIX}:${svc}-${IMAGE_TAG}"
   if ! "${DOCKER[@]}" image inspect "$img" &>/dev/null; then
     MISSING+=("$img")
@@ -67,6 +67,7 @@ cat <<EOF
 
 Ready:
   Gateway:  http://localhost:8080/api/auth/health
+  Agent:    http://localhost:8080/api/agent/health
   RabbitMQ: http://localhost:15673 (guest/guest)
 
 Stop: ./scripts/compose-down.sh

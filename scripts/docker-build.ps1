@@ -7,7 +7,7 @@
 
 param(
     [Parameter()]
-    [ValidateSet('all', 'gateway', 'auth', 'chat', 'user', 'notification', 'media', 'magika')]
+    [ValidateSet('all', 'gateway', 'auth', 'chat', 'user', 'notification', 'media', 'magika', 'agent')]
     [string] $Service = 'all',
 
     [Parameter()]
@@ -58,6 +58,7 @@ $definitions = @(
     @{ Key = 'notification'; Dockerfile = 'notification-service/Dockerfile'; Context = '.';              ImageSuffix = 'notification' }
     @{ Key = 'media';        Dockerfile = 'media-service/Dockerfile';       Context = '.';              ImageSuffix = 'media' }
     @{ Key = 'magika';       Dockerfile = 'magika-service/Dockerfile';      Context = 'magika-service'; ImageSuffix = 'magika' }
+    @{ Key = 'agent';        Dockerfile = 'agent-service/Dockerfile';       Context = 'agent-service';  ImageSuffix = 'agent' }
 )
 
 $toBuild = if ($Service -eq 'all') { $definitions } else { $definitions | Where-Object { $_.Key -eq $Service } }

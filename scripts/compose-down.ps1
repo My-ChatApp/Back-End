@@ -15,7 +15,7 @@ $composeArgs = @(
 if ($AppsOnly) {
     $appServices = @(
         'api-gateway', 'auth-service', 'chat-service', 'user-service',
-        'notification-service', 'media-service', 'magika'
+        'notification-service', 'media-service', 'magika', 'agent-service'
     )
     docker compose @composeArgs stop @appServices 2>$null
     docker compose @composeArgs rm -f @appServices 2>$null

@@ -44,7 +44,8 @@ $requiredImages = @(
     "mychatapp:user-$Tag",
     "mychatapp:notification-$Tag",
     "mychatapp:media-$Tag",
-    "mychatapp:magika-$Tag"
+    "mychatapp:magika-$Tag",
+    "mychatapp:agent-$Tag"
 )
 
 Write-Host "Checking local images (tag: $Tag)..." -ForegroundColor Cyan
@@ -76,6 +77,7 @@ Write-Host @"
 
 Ready:
   Gateway:  http://localhost:8080/api/auth/health
+  Agent:    http://localhost:8080/api/agent/health
   Auth:     http://localhost:8081/api/auth/health
   Magika:   http://localhost:8090/health
   RabbitMQ: http://localhost:15673  (guest/guest)

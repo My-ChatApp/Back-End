@@ -1,5 +1,7 @@
 package iuh.fit.authservice.controller;
 
+import iuh.fit.authservice.dto.request.ChangePasswordRequest;
+import iuh.fit.authservice.dto.request.EmailRequest;
 import iuh.fit.authservice.dto.request.ForgotPasswordRequest;
 import iuh.fit.authservice.dto.request.LoginRequest;
 import iuh.fit.authservice.dto.request.RegisterRequest;
@@ -8,10 +10,14 @@ import iuh.fit.authservice.dto.request.VerifyOtpRequest;
 import iuh.fit.authservice.dto.response.AuthResponse;
 import iuh.fit.authservice.dto.response.LoginResponse;
 import iuh.fit.authservice.dto.response.PasswordResetResponse;
+import iuh.fit.authservice.entity.User;
 import iuh.fit.authservice.event.publisher.AuthService;
+import iuh.fit.authservice.event.publisher.ChangePasswordService;
+import iuh.fit.authservice.service.CustomUserDetailsService;
 import iuh.fit.authservice.service.impl.PasswordResetService;
 import iuh.fit.authservice.util.JwtUtil;
 import iuh.fit.common.dto.response.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,40 +35,67 @@ public class AuthenticationController {
     private final JwtUtil jwtUtils;
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final CustomUserDetailsService userDetailsService;
+    private final ChangePasswordService changePasswordService;
 
     @Autowired
     public AuthenticationController(
             AuthenticationManager authenticationManager,
             JwtUtil jwtUtils,
             AuthService authService,
-            PasswordResetService passwordResetService
+            PasswordResetService passwordResetService,
+            CustomUserDetailsService userDetailsService,
+            ChangePasswordService changePasswordService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
         this.authService = authService;
         this.passwordResetService = passwordResetService;
+        this.userDetailsService = userDetailsService;
+        this.changePasswordService = changePasswordService;
     }
 
     @PostMapping("/signin")
-    public ApiResponse<LoginResponse> authenticateUser(@RequestBody LoginRequest user) {
+    public ApiResponse<LoginResponse> authenticateUser(@Valid @RequestBody LoginRequest user) {
         log.info("[AuthenticationController] Login attempt for email: {}", user.getEmail());
         return issueTokenForCredentials(user.getEmail(), user.getPassword(), "Login successful");
     }
 
-    @PostMapping("/sigin-otp")
-    public ApiResponse<LoginResponse> authenticateUserWithOtp(@RequestBody VerifyOtpRequest request) {
-        log.info("[AuthenticationController] OTP login attempt for email: {}", request.getEmail());
-        // 1. Verify OTP
-        authService.verifyOtp(request.getEmail(), request.getOtp());
-        // 2. Issue token if OTP is valid
-        return issueTokenForCredentials(request.getEmail(), "OTP_VERIFIED", "Login successful with OTP");
+    @PostMapping("/signup")
+    public ApiResponse<Void> registerUser(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        log.info("[AuthenticationController] Signup pending OTP for: {}", request.getEmail());
+        return new ApiResponse<>(true, "Registration successful, please verify OTP sent to your email", null);
     }
 
-    @PostMapping("/signup")
-    public ApiResponse<Void> registerUser(@RequestBody RegisterRequest request) {
-        authService.register(request);
-        log.info("[AuthenticationController] User registered, issuing token for: {}", request.getEmail());
-        return new ApiResponse<>(true, "Registration successful, please verify OTP sent to your email", null);
+    @PostMapping("/signup/resend-otp")
+    public ApiResponse<Void> resendRegistrationOtp(@Valid @RequestBody EmailRequest request) {
+        authService.resendRegistrationOtp(request.getEmail());
+        return new ApiResponse<>(true, "OTP đã được gửi lại tới email của bạn", null);
+    }
+
+    @PostMapping("/verify-otp")
+    public ApiResponse<LoginResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        User user = authService.verifyRegistrationOtp(request.getEmail(), request.getOtp());
+        return new ApiResponse<>(true, "OTP verified successfully", issueTokenForUser(user));
+    }
+
+    @PostMapping("/signin-otp/send")
+    public ApiResponse<Void> sendLoginOtp(@Valid @RequestBody EmailRequest request) {
+        authService.sendLoginOtp(request.getEmail());
+        return new ApiResponse<>(true, "Mã OTP đăng nhập đã được gửi tới email của bạn", null);
+    }
+
+    @PostMapping("/signin-otp/resend")
+    public ApiResponse<Void> resendLoginOtp(@Valid @RequestBody EmailRequest request) {
+        authService.resendLoginOtp(request.getEmail());
+        return new ApiResponse<>(true, "Mã OTP đăng nhập đã được gửi lại", null);
+    }
+
+    @PostMapping("/signin-otp")
+    public ApiResponse<LoginResponse> loginWithOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        User user = authService.verifyLoginOtp(request.getEmail(), request.getOtp());
+        return new ApiResponse<>(true, "Login successful with OTP", issueTokenForUser(user));
     }
 
     private ApiResponse<LoginResponse> issueTokenForCredentials(
@@ -91,38 +124,40 @@ public class AuthenticationController {
         }
     }
 
+    private LoginResponse issueTokenForUser(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        String token = jwtUtils.generateToken(userDetails);
+        return new LoginResponse(token);
+    }
+
     @PostMapping("/validate")
-    public AuthResponse validateToken(@RequestHeader ("Authorization") String token) {
+    public AuthResponse validateToken(@RequestHeader("Authorization") String token) {
         String jwt = token.replace("Bearer ", "");
         boolean isValid = jwtUtils.validateJwtToken(jwt);
         String email = isValid ? jwtUtils.getUserFromToken(jwt) : null;
         return new AuthResponse(isValid, email);
     }
 
-    // AuthController
-    @PostMapping("/verify-otp")
-    public ApiResponse<Void> verifyOtp(@RequestBody VerifyOtpRequest request) {
-        authService.verifyOtp(request.getEmail(), request.getOtp());
-        return new ApiResponse<>(true, "OTP verified successfully", null);
-    }
-
     @PostMapping("/change-password")
-    public ApiResponse<Void> changePassword(@RequestHeader("Authorization") String token, @RequestBody String newPassword) {
+    public ApiResponse<Void> changePassword(
+            @RequestHeader("Authorization") String token,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
         String jwt = token.replace("Bearer ", "");
-        if (!passwordResetService.validateResetToken(token)) {
+        if (!jwtUtils.validateJwtToken(jwt)) {
             return new ApiResponse<>(false, "Invalid token", null);
         }
         String email = jwtUtils.getUserFromToken(jwt);
-        authService.changePassword(email, newPassword);
+        authService.changePassword(email, request.getCurrentPassword(), request.getNewPassword());
+        changePasswordService.publishChangePasswordEvent(email);
         return new ApiResponse<>(true, "Password changed successfully", null);
     }
 
     @PostMapping("/forgot-password")
-    public ApiResponse<PasswordResetResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ApiResponse<PasswordResetResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         log.info("[AuthenticationController] Forgot password request for email: {}", request.getEmail());
         try {
             passwordResetService.sendPasswordResetEmail(request.getEmail());
-            // Always return success message (even if email doesn't exist) to avoid email enumeration
             return new ApiResponse<>(
                     true,
                     "Nếu email tồn tại, link reset password sẽ được gửi trong vài phút",
@@ -139,7 +174,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/reset-password")
-    public ApiResponse<PasswordResetResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ApiResponse<PasswordResetResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         log.info("[AuthenticationController] Password reset request received");
         try {
             passwordResetService.resetPassword(request.getToken(), request.getNewPassword());

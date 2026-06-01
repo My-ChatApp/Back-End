@@ -38,6 +38,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.password-reset-confirmation.routing-key:auth.password-reset-confirmed}")
     private String passwordResetConfirmationRoutingKey;
 
+    @Value("${rabbitmq.login-otp.queue:auth.login-otp.queue}")
+    private String loginOtpQueueName;
+
+    @Value("${rabbitmq.login-otp.routing-key:auth.login-otp}")
+    private String loginOtpRoutingKey;
+
     @Bean
     public TopicExchange friendExchange() {
         return new TopicExchange(FRIEND_EXCHANGE);
@@ -107,6 +113,19 @@ public class RabbitMQConfig {
                 .bind(passwordResetConfirmationQueue)
                 .to(authExchange)
                 .with(passwordResetConfirmationRoutingKey);
+    }
+
+    @Bean
+    public Queue loginOtpQueue() {
+        return QueueBuilder.durable(loginOtpQueueName).build();
+    }
+
+    @Bean
+    public Binding loginOtpBinding(Queue loginOtpQueue, TopicExchange authExchange) {
+        return BindingBuilder
+                .bind(loginOtpQueue)
+                .to(authExchange)
+                .with(loginOtpRoutingKey);
     }
 
     @Bean

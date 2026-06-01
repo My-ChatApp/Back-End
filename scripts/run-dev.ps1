@@ -341,6 +341,7 @@ Write-Host "  Chat              http://localhost:8082" -ForegroundColor Yellow
 Write-Host "  User [+ Friends]  http://localhost:8083" -ForegroundColor Yellow
 Write-Host "  Media [Node/S3]   http://localhost:8085  -> /api/media/presigned-upload" -ForegroundColor Yellow
 Write-Host "  Notification      http://localhost:8084" -ForegroundColor Yellow
+Write-Host "  Agent [Python]    http://localhost:8088  -> gateway /api/agent/chat" -ForegroundColor Yellow
 Write-Host "  Magika [Docker]   http://localhost:8090/health" -ForegroundColor Yellow
 Write-Host "  RabbitMQ UI       http://localhost:15673  (guest/guest)" -ForegroundColor Yellow
 Write-Host "  Valkey            localhost:6379" -ForegroundColor Yellow

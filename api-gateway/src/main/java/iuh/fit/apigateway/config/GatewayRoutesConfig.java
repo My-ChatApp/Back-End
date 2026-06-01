@@ -31,6 +31,9 @@ public class GatewayRoutesConfig {
     @Value("${MEDIA_SERVICE_URI:http://localhost:8085}")
     private String mediaServiceUri;
 
+    @Value("${AGENT_SERVICE_URI:http://localhost:8088}")
+    private String agentServiceUri;
+
     @Bean
     public RouteLocator gatewayRouteLocator(
             RouteLocatorBuilder builder,
@@ -82,6 +85,17 @@ public class GatewayRoutesConfig {
             routes.route("media-service", r -> r.path("/api/media/**")
                     .filters(f -> rateLimit(f, mediaRedisRateLimiter, userKeyResolver))
                     .uri(mediaServiceUri));
+
+            routes.route("agent-health", r -> r.path("/api/agent/health")
+                    .filters(f -> f.rewritePath("/api/agent/health", "/health"))
+                    .uri(agentServiceUri));
+
+            routes.route("agent-chat", r -> r.path("/api/agent/chat")
+                    .filters(f -> rateLimit(
+                            f.rewritePath("/api/agent/chat", "/api/chat"),
+                            defaultRedisRateLimiter,
+                            userKeyResolver))
+                    .uri(agentServiceUri));
         } else {
             routes.route("auth-service", r -> r.path("/api/auth/**").uri(authServiceUri));
             routes.route("auth-users", r -> r.path("/api/users/**").uri(authServiceUri));
@@ -92,6 +106,14 @@ public class GatewayRoutesConfig {
             routes.route("notification-service", r -> r.path("/api/notifications/**").uri(notificationServiceUri));
             routes.route("friend-service", r -> r.path("/api/friends/**").uri(userServiceUri));
             routes.route("media-service", r -> r.path("/api/media/**").uri(mediaServiceUri));
+
+            routes.route("agent-health", r -> r.path("/api/agent/health")
+                    .filters(f -> f.rewritePath("/api/agent/health", "/health"))
+                    .uri(agentServiceUri));
+
+            routes.route("agent-chat", r -> r.path("/api/agent/chat")
+                    .filters(f -> f.rewritePath("/api/agent/chat", "/api/chat"))
+                    .uri(agentServiceUri));
         }
 
         return routes.build();

@@ -4,9 +4,12 @@ import iuh.fit.common.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -79,6 +82,54 @@ public class GlobalExceptionHandler {
                 401,
                 "BAD_CREDENTIALS",
                 "Invalid username or password",
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request
+    ) {
+        return new ErrorResponse(
+                LocalDateTime.now(),
+                400,
+                "BAD_REQUEST",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleValidation(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining("; "));
+        return new ErrorResponse(
+                LocalDateTime.now(),
+                400,
+                "VALIDATION_ERROR",
+                message.isBlank() ? "Dữ liệu không hợp lệ" : message,
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalState(
+            IllegalStateException ex,
+            HttpServletRequest request
+    ) {
+        return new ErrorResponse(
+                LocalDateTime.now(),
+                400,
+                "BAD_REQUEST",
+                ex.getMessage(),
                 request.getRequestURI()
         );
     }

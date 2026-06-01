@@ -25,6 +25,14 @@ public class UserController {
         return new ApiResponse<>(true, "OK", userCrudService.findAllActive());
     }
 
+    @GetMapping("/search")
+    public ApiResponse<List<UserResponse>> search(
+            @RequestParam String q,
+            @RequestParam(required = false) UUID excludeUserId,
+            @RequestParam(defaultValue = "20") int limit) {
+        return new ApiResponse<>(true, "OK", userCrudService.searchUsers(q, excludeUserId, limit));
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<UserResponse> getById(@PathVariable UUID id) {
         return new ApiResponse<>(true, "OK", userCrudService.findById(id));
