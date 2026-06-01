@@ -65,11 +65,15 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mychatapp
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: "5672"
+      REDIS_HOST: valkey
+      REDIS_PORT: "6379"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_started
+      valkey:
+        condition: service_healthy
 
   chat-service:
     image: mychatapp:chat-${IMAGE_TAG:-v1}
