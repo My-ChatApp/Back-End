@@ -1,8 +1,6 @@
 package iuh.fit.authservice.event.publisher;
 
-import iuh.fit.authservice.entity.User;
 import iuh.fit.authservice.event.payload.ChangePasswordEvent;
-import iuh.fit.authservice.event.payload.UserRegisteredEvent;
 import iuh.fit.authservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -17,9 +15,8 @@ public class ChangePasswordService {
     private final UserRepository userRepository;
 
     public void publishChangePasswordEvent(String email) {
-        User user = userRepository.findByEmail(email)
+        userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-        // Tạo payload cho sự kiện
         ChangePasswordEvent event = new ChangePasswordEvent(email);
 
         // Gửi sự kiện đến RabbitMQ

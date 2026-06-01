@@ -1,5 +1,6 @@
 package iuh.fit.notificationservice.event.consumer;
 
+import iuh.fit.notificationservice.event.payload.LoginOtpEvent;
 import iuh.fit.notificationservice.event.payload.PasswordResetEvent;
 import iuh.fit.notificationservice.event.payload.UserRegisteredEvent;
 import iuh.fit.notificationservice.service.SesMailService;
@@ -45,6 +46,29 @@ public class MailConsumer {
         }
     }
 
+
+    @RabbitListener(queues = "${rabbitmq.login-otp.queue:auth.login-otp.queue}")
+    public void handleLoginOtp(LoginOtpEvent event) {
+        log.info("[MailConsumer] Received login OTP event for email: {}", event.getEmail());
+
+        if (!registrationMailEnabled) {
+            log.info("Skip login OTP email for {} (registration mail disabled)", event.getEmail());
+            return;
+        }
+
+        try {
+            String htmlContent = buildLoginOtpEmailHtml(event.getEmail(), event.getOtp(), event.getOtpExpiryMinutes());
+            sesMailService.sendHtml(
+                    event.getEmail(),
+                    "Mã OTP đăng nhập – MyChatApp",
+                    htmlContent
+            );
+            log.info("[MailConsumer] Login OTP email sent to: {}", event.getEmail());
+        } catch (Exception e) {
+            log.error("[MailConsumer] Failed to send login OTP email to {}: {}", event.getEmail(), e.getMessage(), e);
+            throw new IllegalStateException("Gửi mail OTP đăng nhập SES thất bại", e);
+        }
+    }
 
     @RabbitListener(queues = "auth.password-reset.queue")
     public void handlePasswordReset(PasswordResetEvent event) {
@@ -173,6 +197,54 @@ public class MailConsumer {
             </body>
             </html>
             """.formatted(username, otp, expiryMinutes > 0 ? expiryMinutes : 5);
+    }
+
+    private String buildLoginOtpEmailHtml(String email, String otp, int expiryMinutes) {
+        return """
+            <!DOCTYPE html>
+            <html lang="vi">
+            <head>
+              <meta charset="UTF-8"/>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            </head>
+            <body style="margin:0;padding:0;background-color:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+              <table width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f9;padding:40px 0;">
+                <tr>
+                  <td align="center">
+                    <table width="480" cellpadding="0" cellspacing="0"
+                           style="background:#ffffff;border-radius:12px;overflow:hidden;
+                                  box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+                      <tr>
+                        <td style="background:linear-gradient(135deg,#0ea5e9,#6366f1);
+                                   padding:36px 40px;text-align:center;">
+                          <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">Đăng nhập bằng OTP</h1>
+                          <p style="margin:8px 0 0;color:#bae6fd;font-size:14px;">MyChatApp</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:40px 40px 32px;">
+                          <p style="margin:0 0 16px;color:#374151;font-size:15px;">
+                            Xin chào <strong>%s</strong>,
+                          </p>
+                          <p style="margin:0 0 28px;color:#6b7280;font-size:14px;line-height:1.6;">
+                            Dùng mã OTP bên dưới để đăng nhập vào tài khoản của bạn:
+                          </p>
+                          <div style="background:#eff6ff;border:2px dashed #3b82f6;
+                                      border-radius:10px;padding:24px;text-align:center;margin-bottom:28px;">
+                            <p style="margin:0;color:#3b82f6;font-size:40px;font-weight:800;letter-spacing:12px;">%s</p>
+                          </div>
+                          <p style="margin:0;color:#92400e;font-size:13px;">
+                            Mã có hiệu lực trong <strong>%d phút</strong>. Không chia sẻ mã với bất kỳ ai.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+            """.formatted(email, otp, expiryMinutes > 0 ? expiryMinutes : 5);
     }
 
     private String buildPasswordResetEmailHtml(String resetLink, int expiryMinutes) {

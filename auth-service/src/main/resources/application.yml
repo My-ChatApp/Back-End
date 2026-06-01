@@ -38,6 +38,8 @@ spring:
 rabbitmq:
   exchange: ${RABBITMQ_EXCHANGE:auth.exchange}
   routing-key: ${RABBITMQ_ROUTING_KEY:auth.registered}
+  login-otp:
+    routing-key: ${RABBITMQ_LOGIN_OTP_ROUTING_KEY:auth.login-otp}
   password-reset:
     routing-key: ${RABBITMQ_PASSWORD_RESET_ROUTING_KEY:auth.password-reset}
 
@@ -51,6 +53,7 @@ otp:
   expiry-minutes: ${OTP_EXPIRY_MINUTES:5}
   length: ${OTP_LENGTH:6}
   max-attempts: ${OTP_MAX_ATTEMPTS:3}
+  resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
 
 jwt:
   secret: ${JWT_SECRET}

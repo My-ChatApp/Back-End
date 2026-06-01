@@ -21,16 +21,25 @@ public class PendingRegistrationService {
     private ObjectMapper objectMapper;
 
     public void save(RegisterRequest request) {
-        redisTemplate.opsForValue().set(PREFIX + request.getEmail(), request, TTL);
+        String key = PREFIX + normalize(request.getEmail());
+        redisTemplate.opsForValue().set(key, request, TTL);
+    }
+
+    public boolean hasPending(String email) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + normalize(email)));
     }
 
     public RegisterRequest get(String email) {
-        Object data =  redisTemplate.opsForValue().get(PREFIX + email);
+        Object data = redisTemplate.opsForValue().get(PREFIX + normalize(email));
         if (data == null) throw new IllegalStateException("Phiên đăng ký đã hết hạn, vui lòng thử lại");
         return objectMapper.convertValue(data, RegisterRequest.class);
     }
 
     public void delete(String email) {
-        redisTemplate.delete(PREFIX + email);
+        redisTemplate.delete(PREFIX + normalize(email));
+    }
+
+    private String normalize(String email) {
+        return email == null ? "" : email.trim().toLowerCase();
     }
 }
