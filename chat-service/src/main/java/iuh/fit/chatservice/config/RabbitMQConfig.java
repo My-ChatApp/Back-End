@@ -50,6 +50,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.internal.updated-routing-key:chat.message.updated}")
     private String updatedRoutingKey;
 
+    @Value("${rabbitmq.internal.deleted-routing-key:chat.message.deleted}")
+    private String deletedRoutingKey;
+
+    @Value("${rabbitmq.internal.reactions-routing-key:chat.message.reactions.updated}")
+    private String reactionsRoutingKey;
+
     @Value("${rabbitmq.internal.dlx:chat.internal.dlx}")
     private String internalDlxName;
 
@@ -149,6 +155,16 @@ public class RabbitMQConfig {
     @Bean
     public Binding chatPersistUpdatedBinding(Queue chatPersistQueue, TopicExchange chatInternalExchange) {
         return BindingBuilder.bind(chatPersistQueue).to(chatInternalExchange).with(updatedRoutingKey);
+    }
+
+    @Bean
+    public Binding chatPersistDeletedBinding(Queue chatPersistQueue, TopicExchange chatInternalExchange) {
+        return BindingBuilder.bind(chatPersistQueue).to(chatInternalExchange).with(deletedRoutingKey);
+    }
+
+    @Bean
+    public Binding chatPersistReactionsBinding(Queue chatPersistQueue, TopicExchange chatInternalExchange) {
+        return BindingBuilder.bind(chatPersistQueue).to(chatInternalExchange).with(reactionsRoutingKey);
     }
 
     @Bean

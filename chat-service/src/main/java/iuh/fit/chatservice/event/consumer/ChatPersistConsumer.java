@@ -3,6 +3,8 @@ package iuh.fit.chatservice.event.consumer;
 import iuh.fit.chatservice.entity.Conversation;
 import iuh.fit.chatservice.entity.enums.MessageType;
 import iuh.fit.chatservice.event.payload.ChatMessageCreatedEvent;
+import iuh.fit.chatservice.event.payload.ChatMessageReactionsUpdatedEvent;
+import iuh.fit.chatservice.event.payload.ChatMessageDeletedEvent;
 import iuh.fit.chatservice.event.payload.ChatMessageUpdatedEvent;
 import iuh.fit.chatservice.model.ChatMessage;
 import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
@@ -112,6 +114,31 @@ public class ChatPersistConsumer {
 
     @RabbitHandler
     @Transactional
+    public void handleMessageReactionsUpdated(ChatMessageReactionsUpdatedEvent event) {
+        if (event == null || event.getMessageId() == null) {
+            return;
+        }
+        try {
+            chatMessageRepository.updateMessageReactions(
+                    event.getMessageId(),
+                    event.getConversationId(),
+                    event.getReactions(),
+                    event.getReactionCount());
+            log.info(
+                    "[WriteConsumer] Reactions update success: messageId={} conversationId={} count={}",
+                    event.getMessageId(),
+                    event.getConversationId(),
+                    event.getReactionCount());
+        } catch (RuntimeException e) {
+            log.warn(
+                    "[WriteConsumer] Reactions update skipped: messageId={} — {}",
+                    event.getMessageId(),
+                    e.getMessage());
+        }
+    }
+
+    @RabbitHandler
+    @Transactional
     public void handleMessageUpdated(ChatMessageUpdatedEvent event) {
         if (event == null || event.getMessageId() == null) {
             return;
@@ -128,6 +155,36 @@ public class ChatPersistConsumer {
                 .build();
         chatMessageRepository.updateMessageContent(message);
         log.info("[WriteConsumer] Update success: messageId={} conversationId={} (DynamoDB)",
+                event.getMessageId(), event.getConversationId());
+    }
+
+    @RabbitHandler
+    @Transactional
+    public void handleMessageDeleted(ChatMessageDeletedEvent event) {
+        if (event == null || event.getMessageId() == null) {
+            return;
+        }
+        ChatMessage message = ChatMessage.builder()
+                .messageId(event.getMessageId())
+                .conversationId(event.getConversationId())
+                .senderId(event.getSenderId())
+                .type(event.getType())
+                .deleted(true)
+                .deletedAt(event.getDeletedAt())
+                .createdAt(event.getCreatedAt())
+                .build();
+        chatMessageRepository.updateMessageDeleted(message);
+
+        UUID conversationId = UUID.fromString(event.getConversationId());
+        conversationRepository.findById(conversationId).ifPresent(conv -> {
+            if (conv.getLastMessageId() != null
+                    && conv.getLastMessageId().toString().equals(event.getMessageId())) {
+                conv.setLastMessagePreview("Tin nhắn đã bị xóa");
+                conversationRepository.save(conv);
+            }
+        });
+
+        log.info("[WriteConsumer] Delete success: messageId={} conversationId={} (DynamoDB)",
                 event.getMessageId(), event.getConversationId());
     }
 

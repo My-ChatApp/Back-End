@@ -2,6 +2,7 @@ package iuh.fit.chatservice.persistence.dynamodb;
 
 import iuh.fit.chatservice.config.MyChatAppDynamoDbProperties;
 import iuh.fit.chatservice.model.ChatMessage;
+import iuh.fit.chatservice.model.MessageReactionDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -145,6 +146,33 @@ public class ChatMessageRepository {
         return messages;
     }
 
+    public List<ChatMessage> findByConversationIdAfter(
+            String conversationId, Instant afterCreatedAt, String afterMessageId, int limit) {
+        if (afterCreatedAt == null || afterMessageId == null || limit <= 0) {
+            return List.of();
+        }
+        String table = properties.getTableName();
+        String afterSk = ChatMessageItemFactory.messageSk(
+                ChatMessageItemFactory.formatInstant(afterCreatedAt), afterMessageId);
+        QueryResponse response = dynamoDbClient.query(QueryRequest.builder()
+                .tableName(table)
+                .keyConditionExpression("PK = :pk AND SK > :afterSk")
+                .filterExpression("entityType = :entityType")
+                .expressionAttributeValues(Map.of(
+                        ":pk", AttributeValue.builder().s(ChatMessageItemFactory.conversationPk(conversationId)).build(),
+                        ":afterSk", AttributeValue.builder().s(afterSk).build(),
+                        ":entityType", AttributeValue.builder().s("MESSAGE").build()
+                ))
+                .scanIndexForward(true)
+                .limit(limit)
+                .build());
+
+        return response.items().stream()
+                .filter(item -> "MESSAGE".equals(getEntityType(item)))
+                .map(itemFactory::fromTimelineItem)
+                .collect(Collectors.toList());
+    }
+
     public Optional<ChatMessage> findByMessageId(String messageId) {
         String table = properties.getTableName();
         GetItemResponse metaResponse = dynamoDbClient.getItem(GetItemRequest.builder()
@@ -205,6 +233,73 @@ public class ChatMessageRepository {
                         "SK", AttributeValue.builder().s(keys.timelineSk()).build()
                 ))
                 .updateExpression("SET content = :content, edited = :edited, editedAt = :editedAt")
+                .expressionAttributeValues(expressionValues)
+                .build());
+    }
+
+    public void updateMessageDeleted(ChatMessage message) {
+        String table = properties.getTableName();
+        ChatMessageDynamoKeys keys = itemFactory.keysFor(message);
+        String deletedAtIso = ChatMessageItemFactory.formatInstant(message.getDeletedAt());
+
+        Map<String, AttributeValue> timelineValues = new HashMap<>();
+        timelineValues.put(":deleted", AttributeValue.builder().bool(true).build());
+        timelineValues.put(":deletedAt", AttributeValue.builder().s(deletedAtIso).build());
+        timelineValues.put(":content", AttributeValue.builder().s("").build());
+        timelineValues.put(":attachmentCount", AttributeValue.builder().n("0").build());
+        timelineValues.put(":reactionCount", AttributeValue.builder().n("0").build());
+        timelineValues.put(":emptyList", AttributeValue.builder().l(List.of()).build());
+
+        dynamoDbClient.updateItem(UpdateItemRequest.builder()
+                .tableName(table)
+                .key(Map.of(
+                        "PK", AttributeValue.builder().s(keys.timelinePk()).build(),
+                        "SK", AttributeValue.builder().s(keys.timelineSk()).build()
+                ))
+                .updateExpression(
+                        "SET deleted = :deleted, deletedAt = :deletedAt, content = :content, "
+                                + "attachmentCount = :attachmentCount, reactionCount = :reactionCount, "
+                                + "attachments = :emptyList, reactions = :emptyList")
+                .expressionAttributeValues(timelineValues)
+                .build());
+
+        dynamoDbClient.updateItem(UpdateItemRequest.builder()
+                .tableName(table)
+                .key(Map.of(
+                        "PK", AttributeValue.builder().s(keys.metaPk()).build(),
+                        "SK", AttributeValue.builder().s(keys.metaSk()).build()
+                ))
+                .updateExpression("SET deleted = :deleted")
+                .expressionAttributeValues(Map.of(
+                        ":deleted", AttributeValue.builder().bool(true).build()))
+                .build());
+    }
+
+    public void updateMessageReactions(
+            String messageId, String conversationId, List<MessageReactionDto> reactions, int reactionCount) {
+        ChatMessage existing = findByMessageId(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
+        if (!conversationId.equals(existing.getConversationId())) {
+            throw new RuntimeException("Message does not belong to conversation");
+        }
+        List<MessageReactionDto> safeReactions = reactions != null ? reactions : List.of();
+        ChatMessageDynamoKeys keys = itemFactory.keysFor(existing);
+
+        String table = properties.getTableName();
+        Map<String, AttributeValue> expressionValues = new HashMap<>();
+        expressionValues.put(
+                ":reactions",
+                AttributeValue.builder().l(itemFactory.toReactionAttributeList(safeReactions)).build());
+        expressionValues.put(
+                ":reactionCount", AttributeValue.builder().n(String.valueOf(reactionCount)).build());
+
+        dynamoDbClient.updateItem(UpdateItemRequest.builder()
+                .tableName(table)
+                .key(Map.of(
+                        "PK", AttributeValue.builder().s(keys.timelinePk()).build(),
+                        "SK", AttributeValue.builder().s(keys.timelineSk()).build()
+                ))
+                .updateExpression("SET reactions = :reactions, reactionCount = :reactionCount")
                 .expressionAttributeValues(expressionValues)
                 .build());
     }

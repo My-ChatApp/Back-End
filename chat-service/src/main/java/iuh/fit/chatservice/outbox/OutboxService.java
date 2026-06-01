@@ -7,6 +7,8 @@ import iuh.fit.chatservice.entity.OutboxEvent;
 import iuh.fit.chatservice.entity.enums.OutboxEventStatus;
 import iuh.fit.chatservice.entity.enums.OutboxEventType;
 import iuh.fit.chatservice.event.payload.ChatMessageCreatedEvent;
+import iuh.fit.chatservice.event.payload.ChatMessageReactionsUpdatedEvent;
+import iuh.fit.chatservice.event.payload.ChatMessageDeletedEvent;
 import iuh.fit.chatservice.event.payload.ChatMessageUpdatedEvent;
 import iuh.fit.chatservice.event.payload.ConversationHistoryLoadRequestedEvent;
 import iuh.fit.chatservice.event.publisher.ChatInternalEventPublisher;
@@ -41,6 +43,12 @@ public class OutboxService {
     @Value("${rabbitmq.internal.updated-routing-key:chat.message.updated}")
     private String updatedRoutingKey;
 
+    @Value("${rabbitmq.internal.deleted-routing-key:chat.message.deleted}")
+    private String deletedRoutingKey;
+
+    @Value("${rabbitmq.internal.reactions-routing-key:chat.message.reactions.updated}")
+    private String reactionsRoutingKey;
+
     @Value("${rabbitmq.internal.hydrate-routing-key:chat.history.load}")
     private String hydrateRoutingKey;
 
@@ -61,6 +69,24 @@ public class OutboxService {
             return;
         }
         enqueue(event.getMessageId(), OutboxEventType.MESSAGE_UPDATED, updatedRoutingKey, event);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void enqueueMessageDeleted(ChatMessageDeletedEvent event) {
+        if (!outboxProperties.isEnabled()) {
+            internalEventPublisher.publishMessageDeleted(event);
+            return;
+        }
+        enqueue(event.getMessageId(), OutboxEventType.MESSAGE_DELETED, deletedRoutingKey, event);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void enqueueMessageReactionsUpdated(ChatMessageReactionsUpdatedEvent event) {
+        if (!outboxProperties.isEnabled()) {
+            internalEventPublisher.publishMessageReactionsUpdated(event);
+            return;
+        }
+        enqueue(event.getMessageId(), OutboxEventType.MESSAGE_REACTIONS_UPDATED, reactionsRoutingKey, event);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -146,6 +172,10 @@ public class OutboxService {
                     chatSpaceObjectMapper.readValue(row.getPayload(), ChatMessageCreatedEvent.class));
             case MESSAGE_UPDATED -> internalEventPublisher.publishMessageUpdated(
                     chatSpaceObjectMapper.readValue(row.getPayload(), ChatMessageUpdatedEvent.class));
+            case MESSAGE_DELETED -> internalEventPublisher.publishMessageDeleted(
+                    chatSpaceObjectMapper.readValue(row.getPayload(), ChatMessageDeletedEvent.class));
+            case MESSAGE_REACTIONS_UPDATED -> internalEventPublisher.publishMessageReactionsUpdated(
+                    chatSpaceObjectMapper.readValue(row.getPayload(), ChatMessageReactionsUpdatedEvent.class));
             case HISTORY_LOAD_REQUESTED -> internalEventPublisher.publishHistoryLoadRequested(
                     chatSpaceObjectMapper.readValue(row.getPayload(), ConversationHistoryLoadRequestedEvent.class));
             default -> throw new IllegalStateException("Unknown outbox event type: " + row.getEventType());

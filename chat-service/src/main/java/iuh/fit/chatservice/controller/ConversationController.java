@@ -88,6 +88,19 @@ public class ConversationController {
         return new ApiResponse<>(true, "Conversation deleted", null);
     }
 
+    @GetMapping("/{conversationId}/messages/around")
+    public ApiResponse<MessagesPageResponse> getMessagesAround(
+            @PathVariable String conversationId,
+            @RequestParam String userId,
+            @RequestParam String anchor,
+            @RequestParam(required = false) Integer limit) {
+        int pageSize = limit != null && limit > 0 ? limit : chatSpaceProperties.getDefaultPageSize();
+        return new ApiResponse<>(
+                true,
+                "OK",
+                chatService.getMessagesAround(conversationId, userId, anchor, pageSize));
+    }
+
     @GetMapping("/{conversationId}/messages/search")
     public ApiResponse<List<MessageSearchResult>> searchMessages(
             @PathVariable String conversationId,

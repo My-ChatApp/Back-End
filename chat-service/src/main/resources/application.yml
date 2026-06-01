@@ -74,6 +74,8 @@ rabbitmq:
     hydrate-queue: ${RABBITMQ_CHAT_HYDRATE_QUEUE:chat.hydrate.queue}
     hydrate-routing-key: ${RABBITMQ_CHAT_HYDRATE_ROUTING_KEY:chat.history.load}
     updated-routing-key: ${RABBITMQ_CHAT_UPDATED_ROUTING_KEY:chat.message.updated}
+    deleted-routing-key: ${RABBITMQ_CHAT_DELETED_ROUTING_KEY:chat.message.deleted}
+    reactions-routing-key: ${RABBITMQ_CHAT_REACTIONS_ROUTING_KEY:chat.message.reactions.updated}
     dlx: ${RABBITMQ_CHAT_INTERNAL_DLX:chat.internal.dlx}
     persist-dlq: ${RABBITMQ_CHAT_PERSIST_DLQ:chat.persist.dlq}
     persist-dlq-routing-key: ${RABBITMQ_CHAT_PERSIST_DLQ_ROUTING_KEY:chat.persist.dlq}

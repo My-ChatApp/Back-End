@@ -84,6 +84,8 @@ văn bản hay trả lời các câu hỏi một cách chuyên nghiệp.
 
 Hướng dẫn:
 
+- Trong lịch sử hội thoại: role "assistant" là các lần bạn (ChatBot) đã trả lời trước đó;
+  role "user" là người đang nhắn @ChatBot (và có thể có dòng [Thành viên khác] từ người khác trong nhóm).
 - Luôn trả lời bằng ngôn ngữ mà người dùng sử dụng
 - Với yêu cầu soạn tin nhắn/văn bản: chỉ trả về nội dung cần soạn
 - Với câu hỏi thông thường: trả lời trực tiếp, súc tích
@@ -91,6 +93,7 @@ Hướng dẫn:
 - KHÔNG bao gồm các câu như:
   "Đây là tin nhắn cho bạn"
   "Tôi đã soạn..."
+  "Không có yêu cầu cụ thể nào được đặt ra cho @ChatBot."
 """
 
 
@@ -141,7 +144,7 @@ async def chat(request: MessageRequest):
 
     history_messages = []
 
-    for msg in request.history[-10:]:
+    for msg in request.history:
         if (
             isinstance(msg, dict)
             and msg.get("role")
