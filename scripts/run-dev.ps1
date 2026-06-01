@@ -53,10 +53,12 @@ function Wait-TcpPort([int]$Port, [int]$TimeoutSec = 90) {
             $client.Connect("127.0.0.1", $Port)
             $client.Close()
             return $true
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 2
             $elapsed += 2
-        } finally {
+        }
+        finally {
             if ($client) { $client.Dispose() }
         }
     }
@@ -89,21 +91,34 @@ function Start-DevService(
 Set-Location -LiteralPath '$serviceDir'
 Write-Host '[$Name] port $Port - uvicorn (Python/FastAPI)' -ForegroundColor Green
 `$venv = Join-Path '$serviceDir' '.venv'
+
 if (-not (Test-Path `$venv)) {
     Write-Host '[$Name] tao venv + pip install...' -ForegroundColor Yellow
     python -m venv `$venv
     if (`$LASTEXITCODE -ne 0) { exit `$LASTEXITCODE }
+    
+    Write-Host '[$Name] Cai dat cac thu vien tu requirements.txt...' -ForegroundColor Yellow
     & (Join-Path `$venv 'Scripts\pip.exe') install -r requirements.txt
     if (`$LASTEXITCODE -ne 0) { exit `$LASTEXITCODE }
+    
+    # --- ĐOẠN CODE THÊM MỚI: Tự động fix lỗi Groq và httpx ---
+    Write-Host '[$Name] Fix loi xung dot Groq/httpx (ha cap httpx<0.28.0)...' -ForegroundColor Yellow
+    & (Join-Path `$venv 'Scripts\pip.exe') install "httpx<0.28.0"
+    if (`$LASTEXITCODE -ne 0) { exit `$LASTEXITCODE }
+    # --------------------------------------------------------
 }
-`$env:MAGIKA_PORT = '$Port'
-& (Join-Path `$venv 'Scripts\uvicorn.exe') app.main:app --host 0.0.0.0 --port $Port
+
+# Fix lỗi gán sai port cho Magika (Sửa thành 8090 thay vì port của service)
+`$env:MAGIKA_PORT = '8090'
+
+& (Join-Path `$venv 'Scripts\uvicorn.exe') main:app --host 0.0.0.0 --port $Port
 if (`$LASTEXITCODE -ne 0) {
     Write-Host ''; Write-Host "[uvicorn thoat ma `$LASTEXITCODE]" -ForegroundColor Red
     Read-Host 'Nhan Enter de dong'
 }
 "@
-    } elseif ($Runtime -eq "node") {
+    }
+    elseif ($Runtime -eq "node") {
         $launcherContent = @"
 `$host.UI.RawUI.WindowTitle = 'MyChatApp - $Name (:$Port)'
 Set-Location -LiteralPath '$serviceDir'
@@ -119,15 +134,18 @@ if (`$LASTEXITCODE -ne 0) {
     Read-Host 'Nhan Enter de dong'
 }
 "@
-    } else {
+    }
+    else {
         $localMvnw = Join-Path $serviceDir "mvnw.cmd"
         $rootMvnw = Join-Path $RootDir "mvnw.cmd"
 
         if (Test-Path $localMvnw) {
             $mvnwPath = (Resolve-Path $localMvnw).Path
-        } elseif (Test-Path $rootMvnw) {
+        }
+        elseif (Test-Path $rootMvnw) {
             $mvnwPath = (Resolve-Path $rootMvnw).Path
-        } else {
+        }
+        else {
             throw "Khong tim thay mvnw.cmd (service hoac root Back-End-NDuy)"
         }
 
@@ -190,7 +208,8 @@ function Start-MagikaDocker {
                 Write-Host "  Magika san sang (http://localhost:${Port}/health)" -ForegroundColor DarkGray
                 return
             }
-        } catch {
+        }
+        catch {
             Start-Sleep -Seconds 3
         }
     }
@@ -213,7 +232,8 @@ if ($SyncCdkEnv) {
     Write-Step "Dong bo .env tu CDK stack [S3, CloudFront]"
     if (Test-CommandExists "aws") {
         & (Join-Path $PSScriptRoot "sync-cdk-env.ps1")
-    } else {
+    }
+    else {
         Write-Host "  Bo qua: chua cai AWS CLI" -ForegroundColor Yellow
     }
 }
@@ -297,12 +317,13 @@ if (-not $SkipMagika) {
 Write-Step "Khoi dong cac microservice [moi service mot cua so PowerShell]"
 
 $services = @(
-    @{ Name = "auth-service";         Dir = "auth-service";         Port = 8081; Delay = 0;  Runtime = "java" },
-    @{ Name = "chat-service";         Dir = "chat-service";         Port = 8082; Delay = 3;  Runtime = "java" },
-    @{ Name = "user-service";         Dir = "user-service";         Port = 8083; Delay = 0;  Runtime = "java" },
-    @{ Name = "media-service";        Dir = "media-service";        Port = 8085; Delay = 0;  Runtime = "node" },
-    @{ Name = "notification-service"; Dir = "notification-service"; Port = 8084; Delay = 0;  Runtime = "java" },
-    @{ Name = "api-gateway";          Dir = "api-gateway";          Port = 8080; Delay = 8;  Runtime = "java" }
+    @{ Name = "auth-service"; Dir = "auth-service"; Port = 8081; Delay = 0; Runtime = "java" },
+    @{ Name = "chat-service"; Dir = "chat-service"; Port = 8082; Delay = 3; Runtime = "java" },
+    @{ Name = "user-service"; Dir = "user-service"; Port = 8083; Delay = 0; Runtime = "java" },
+    @{ Name = "media-service"; Dir = "media-service"; Port = 8085; Delay = 0; Runtime = "node" },
+    @{ Name = "agent-service"; Dir = "agent-service"; Port = 8088; Delay = 2; Runtime = "python" },
+    @{ Name = "notification-service"; Dir = "notification-service"; Port = 8084; Delay = 0; Runtime = "java" },
+    @{ Name = "api-gateway"; Dir = "api-gateway"; Port = 8080; Delay = 8; Runtime = "java" }
 )
 
 foreach ($svc in $services) {
