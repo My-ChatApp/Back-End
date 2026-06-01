@@ -1,6 +1,6 @@
 # CI — unit test, Docker build, push Docker Hub
 
-Pipeline GitHub Actions: [`.github/workflows/backend-ci.yml`](../.github/workflows/backend-ci.yml)
+Pipeline GitHub Actions: [`.github/workflows/backend-ci.yml`](./.github/workflows/backend-ci.yml)
 
 ## Luồng
 
@@ -36,7 +36,7 @@ Loại trừ Surefire: `**/*ApplicationTests.java`
 Cần bash (Git Bash / WSL) và JDK 21:
 
 ```bash
-cd Back-End
+# từ root repo Back-End
 chmod +x scripts/ci-test.sh mvnw
 ./scripts/ci-test.sh
 ```
