@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserRegisteredEvent {
+public class ChangePasswordEvent {
     private String email;
-    private String username;
-    private String otp;
-    private int otpExpiryMinutes;
 }
