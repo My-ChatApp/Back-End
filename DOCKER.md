@@ -184,6 +184,18 @@ copy .env.docker.example .env.docker
 
 Dừng: `.\scripts\compose-down.ps1` · Chi tiết: [`DockerTest/README.md`](./DockerTest/README.md).
 
+### EC2 / Ubuntu (Docker Hub — CI deploy)
+
+Push `main` → GitHub Actions build/push image rồi SSH deploy. Xem [`CI.md`](./CI.md).
+
+```bash
+cd Back-End
+cp .env.docker.example .env.docker   # chỉnh secret
+chmod +x scripts/deploy-ec2.sh scripts/dockerhub-pull.sh
+export DOCKERHUB_USERNAME=... DOCKERHUB_TOKEN=...   # nếu repo private
+./scripts/deploy-ec2.sh --tag ci-<full-git-sha>
+```
+
 ### EC2 / Ubuntu (pull từ ECR)
 
 ```bash
