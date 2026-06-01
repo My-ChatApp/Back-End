@@ -10,7 +10,8 @@ COPY .mvn .mvn
 COPY common common
 COPY api-gateway api-gateway
 
-RUN chmod +x mvnw \
+RUN sed -i 's/\r$//' mvnw \
+    && chmod +x mvnw \
     && ./mvnw -f common/pom.xml clean install -DskipTests \
     && ./mvnw -f api-gateway/pom.xml clean package -DskipTests
 

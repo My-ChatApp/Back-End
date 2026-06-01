@@ -248,6 +248,10 @@ aws ecr get-login-password --region ap-southeast-1 `
 - Trên ECS: inject biến môi trường (RDS, JWT, `AUTH_SERVICE_URI`, …) — không copy `.env` vào image.
 - `media-service` cần `MAGIKA_SERVICE_URL` trỏ tới magika (ví dụ `http://magika:8090`) khi chạy container.
 
+## CI (GitHub Actions)
+
+Unit test Maven trước khi build image — xem [`CI.md`](./CI.md).
+
 ## Yêu cầu
 
 - Docker Desktop / Docker Engine

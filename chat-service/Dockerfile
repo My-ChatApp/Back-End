@@ -10,7 +10,8 @@ COPY .mvn .mvn
 COPY common common
 COPY chat-service chat-service
 
-RUN chmod +x mvnw \
+RUN sed -i 's/\r$//' mvnw \
+    && chmod +x mvnw \
     && ./mvnw -f common/pom.xml clean install -DskipTests \
     && ./mvnw -f chat-service/pom.xml clean package -DskipTests
 

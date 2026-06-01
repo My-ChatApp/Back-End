@@ -10,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -40,7 +42,7 @@ class MailConsumerTest {
 
         mailConsumer.handleUserRegistered(event);
 
-        verify(sesMailService, never()).sendText(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(sesMailService, never()).sendHtml(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -56,6 +58,12 @@ class MailConsumerTest {
 
         mailConsumer.handleUserRegistered(event);
 
-        verify(sesMailService).sendText("user@b.com", "Chào mừng bạn!", "Xin chào user1, cảm ơn bạn đã đăng ký!");
+        verify(sesMailService).sendHtml(
+                eq("test@gmail.com"),
+                eq("Xác nhận đăng ký tài khoản – Mã OTP của bạn"),
+                argThat(html ->
+                        html.contains("devil")
+                                && html.contains("123456")
+                                && html.contains("5 phút")));
     }
 }

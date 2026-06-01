@@ -1,0 +1,3 @@
+# Maven wrapper must use LF so Linux/Docker can execute ./mvnw
+/mvnw text eol=lf
+**/mvnw text eol=lf
