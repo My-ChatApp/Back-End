@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,25 +32,27 @@ function resolveConfigPath(): string {
   if (override) {
     return path.resolve(override);
   }
-  return path.resolve(__dirname, '../../media-upload.config.json');
+  return path.resolve(__dirname, "../../media-upload.config.json");
 }
 
 function normalizeExtension(ext: string): string {
   const trimmed = ext.trim().toLowerCase();
-  if (!trimmed.startsWith('.')) {
+  if (!trimmed.startsWith(".")) {
     throw new Error(`Extension must start with '.': ${ext}`);
   }
   return trimmed;
 }
 
 function parseConfig(raw: MediaUploadConfigFile): LoadedMediaUploadConfig {
-  if (!raw.purposes || typeof raw.purposes !== 'object') {
+  if (!raw.purposes || typeof raw.purposes !== "object") {
     throw new Error('media-upload.config.json: missing "purposes"');
   }
 
   const fileHeadMaxBytes = raw.fileHeadMaxBytes;
   if (!Number.isFinite(fileHeadMaxBytes) || fileHeadMaxBytes < 16) {
-    throw new Error('media-upload.config.json: "fileHeadMaxBytes" must be >= 16');
+    throw new Error(
+      'media-upload.config.json: "fileHeadMaxBytes" must be >= 16',
+    );
   }
 
   const extensionToMimes: Record<string, Set<string>> = {};
@@ -58,17 +60,26 @@ function parseConfig(raw: MediaUploadConfigFile): LoadedMediaUploadConfig {
 
   for (const [purpose, purposeConfig] of Object.entries(raw.purposes)) {
     if (!purposeConfig.types?.length) {
-      throw new Error(`media-upload.config.json: purpose "${purpose}" has no types`);
+      throw new Error(
+        `media-upload.config.json: purpose "${purpose}" has no types`,
+      );
     }
-    if (!Number.isFinite(purposeConfig.maxBytes) || purposeConfig.maxBytes <= 0) {
-      throw new Error(`media-upload.config.json: purpose "${purpose}" has invalid maxBytes`);
+    if (
+      !Number.isFinite(purposeConfig.maxBytes) ||
+      purposeConfig.maxBytes <= 0
+    ) {
+      throw new Error(
+        `media-upload.config.json: purpose "${purpose}" has invalid maxBytes`,
+      );
     }
 
     for (const rule of purposeConfig.types) {
       const ext = normalizeExtension(rule.extension);
       const mime = rule.mime.trim().toLowerCase();
       if (!mime) {
-        throw new Error(`media-upload.config.json: empty mime for ${purpose} ${ext}`);
+        throw new Error(
+          `media-upload.config.json: empty mime for ${purpose} ${ext}`,
+        );
       }
 
       if (!extensionToMimes[ext]) {
@@ -99,10 +110,14 @@ function loadConfig(): LoadedMediaUploadConfig {
   const configPath = resolveConfigPath();
   let parsed: MediaUploadConfigFile;
   try {
-    parsed = JSON.parse(readFileSync(configPath, 'utf8')) as MediaUploadConfigFile;
+    parsed = JSON.parse(
+      readFileSync(configPath, "utf8"),
+    ) as MediaUploadConfigFile;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Failed to load media config from ${configPath}: ${message}`);
+    throw new Error(
+      `Failed to load media config from ${configPath}: ${message}`,
+    );
   }
   return parseConfig(parsed);
 }
