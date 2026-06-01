@@ -4,11 +4,13 @@ import iuh.fit.chatservice.dto.request.SendMessageRequest;
 import iuh.fit.chatservice.dto.request.UpdateMessageRequest;
 import iuh.fit.chatservice.entity.Conversation;
 import iuh.fit.chatservice.entity.enums.MessageType;
+import iuh.fit.chatservice.event.payload.ChatMessageDeletedEvent;
 import iuh.fit.chatservice.event.payload.ChatMessageUpdatedEvent;
 import iuh.fit.chatservice.event.payload.ChatRealtimeEnvelope;
 import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.model.ChatMessage;
 import iuh.fit.chatservice.model.MessageAttachmentDto;
+import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.repository.ConversationMemberRepository;
 import iuh.fit.chatservice.repository.ConversationRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
@@ -29,6 +31,7 @@ public class ChatCommandService {
 
     private final ChatStorageStrategy chatStorageStrategy;
     private final ChatSpaceRepository chatSpaceRepository;
+    private final ChatMessageRepository chatMessageRepository;
     private final OutboxService outboxService;
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository conversationMemberRepository;
@@ -99,6 +102,7 @@ public class ChatCommandService {
         }
 
         ChatMessage existing = chatSpaceRepository.getMessage(messageId)
+                .or(() -> chatMessageRepository.findByMessageId(messageId))
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
         if (!existing.getConversationId().equals(conversationId)) {
@@ -107,9 +111,16 @@ public class ChatCommandService {
         if (!existing.getSenderId().equals(userId)) {
             throw new RuntimeException("Only sender can edit message");
         }
+        if (existing.isDeleted()) {
+            throw new RuntimeException("Cannot edit deleted message");
+        }
+        if (existing.getType() != MessageType.TEXT) {
+            throw new RuntimeException("Only text messages can be edited");
+        }
+        messageAttachmentMapper.validate(MessageType.TEXT, List.of(), req.getContent());
 
         Instant now = Instant.now();
-        existing.setContent(req.getContent());
+        existing.setContent(req.getContent().trim());
         existing.setEdited(true);
         existing.setEditedAt(now);
         chatSpaceRepository.updateMessage(existing);
@@ -129,6 +140,58 @@ public class ChatCommandService {
                 conversationId,
                 ChatRealtimeEnvelope.builder()
                         .eventType(ChatRealtimeEnvelope.EventType.MESSAGE_UPDATED)
+                        .message(existing)
+                        .build());
+
+        return existing;
+    }
+
+    @Transactional(readOnly = true)
+    public ChatMessage deleteMessage(String conversationId, String messageId, String userId) {
+        UUID convUuid = UUID.fromString(conversationId);
+        UUID userUuid = UUID.fromString(userId);
+
+        if (!conversationMemberRepository.existsById_ConversationIdAndId_UserIdAndDeletedFalse(convUuid, userUuid)) {
+            throw new RuntimeException("Not a member of this conversation");
+        }
+
+        ChatMessage existing = chatSpaceRepository.getMessage(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        if (!existing.getConversationId().equals(conversationId)) {
+            throw new RuntimeException("Message does not belong to conversation");
+        }
+        if (!existing.getSenderId().equals(userId)) {
+            throw new RuntimeException("Only sender can delete message");
+        }
+        if (existing.isDeleted()) {
+            return existing;
+        }
+
+        Instant now = Instant.now();
+        existing.setDeleted(true);
+        existing.setDeletedAt(now);
+        existing.setContent("");
+        existing.setAttachments(List.of());
+        existing.setAttachmentCount(0);
+        existing.setReactions(List.of());
+        existing.setReactionCount(0);
+        chatSpaceRepository.updateMessage(existing);
+
+        outboxService.enqueueMessageDeleted(ChatMessageDeletedEvent.builder()
+                .messageId(existing.getMessageId())
+                .conversationId(existing.getConversationId())
+                .senderId(existing.getSenderId())
+                .type(existing.getType())
+                .deleted(true)
+                .deletedAt(now)
+                .createdAt(existing.getCreatedAt())
+                .build());
+
+        realtimeBroadcastService.broadcast(
+                conversationId,
+                ChatRealtimeEnvelope.builder()
+                        .eventType(ChatRealtimeEnvelope.EventType.MESSAGE_DELETED)
                         .message(existing)
                         .build());
 

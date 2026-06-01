@@ -14,11 +14,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.beans.factory.ObjectProvider;
+
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +40,9 @@ class ChatQueryServiceTest {
 
     @Mock
     private ChatMessageRepository chatMessageRepository;
+
+    @Mock
+    private ObjectProvider<iuh.fit.chatservice.space.ChatSpaceRepository> chatSpaceRepositoryProvider;
 
     @InjectMocks
     private ChatQueryService chatQueryService;
@@ -96,5 +106,61 @@ class ChatQueryServiceTest {
         assertEquals(1, results.size());
         assertEquals("m1", results.get(0).getMessageId());
         assertEquals("hello world", results.get(0).getContent());
+    }
+
+    @Test
+    void getMessagesAround_member_loadsWindowAndHydratesValkey() {
+        when(conversationMemberRepository.existsById_ConversationIdAndId_UserIdAndDeletedFalse(
+                conversationId, userId)).thenReturn(true);
+
+        Instant anchorTime = Instant.parse("2024-01-15T10:00:00Z");
+        ChatMessage anchor = ChatMessage.builder()
+                .messageId("anchor")
+                .conversationId(conversationId.toString())
+                .senderId(userId.toString())
+                .type(MessageType.TEXT)
+                .content("target")
+                .createdAt(anchorTime)
+                .build();
+        ChatMessage older = ChatMessage.builder()
+                .messageId("older")
+                .conversationId(conversationId.toString())
+                .senderId(userId.toString())
+                .type(MessageType.TEXT)
+                .content("old")
+                .createdAt(anchorTime.minusSeconds(60))
+                .build();
+
+        when(chatMessageRepository.findByMessageId("anchor")).thenReturn(Optional.of(anchor));
+        when(chatMessageRepository.findByConversationIdBefore(
+                eq(conversationId.toString()), eq(anchorTime), eq("anchor"), eq(20)))
+                .thenReturn(List.of(older));
+        when(chatMessageRepository.findByConversationIdAfter(
+                eq(conversationId.toString()), eq(anchorTime), eq("anchor"), eq(20)))
+                .thenReturn(List.of());
+        ChatMessage evenOlder = ChatMessage.builder()
+                .messageId("even-older")
+                .conversationId(conversationId.toString())
+                .senderId(userId.toString())
+                .type(MessageType.TEXT)
+                .content("older still")
+                .createdAt(anchorTime.minusSeconds(120))
+                .build();
+        when(chatMessageRepository.findByConversationIdBefore(
+                eq(conversationId.toString()), eq(older.getCreatedAt()), eq("older"), eq(1)))
+                .thenReturn(List.of(evenOlder));
+
+        iuh.fit.chatservice.space.ChatSpaceRepository space =
+                org.mockito.Mockito.mock(iuh.fit.chatservice.space.ChatSpaceRepository.class);
+        when(chatSpaceRepositoryProvider.getIfAvailable()).thenReturn(space);
+
+        MessagesPageResponse page = chatQueryService.getMessagesAround(
+                conversationId.toString(), userId.toString(), "anchor", 40);
+
+        assertEquals(2, page.getMessages().size());
+        assertEquals("older", page.getMessages().get(0).getMessageId());
+        assertEquals("anchor", page.getMessages().get(1).getMessageId());
+        assertTrue(page.isHasMore());
+        verify(space).appendMessagesBatch(any());
     }
 }

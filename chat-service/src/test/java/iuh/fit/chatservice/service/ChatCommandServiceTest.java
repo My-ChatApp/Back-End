@@ -7,6 +7,7 @@ import iuh.fit.chatservice.entity.enums.MemberRole;
 import iuh.fit.chatservice.entity.enums.MessageType;
 import iuh.fit.chatservice.outbox.OutboxService;
 import iuh.fit.chatservice.model.ChatMessage;
+import iuh.fit.chatservice.persistence.dynamodb.ChatMessageRepository;
 import iuh.fit.chatservice.repository.ConversationMemberRepository;
 import iuh.fit.chatservice.repository.ConversationRepository;
 import iuh.fit.chatservice.space.ChatSpaceRepository;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +39,8 @@ class ChatCommandServiceTest {
     private ChatStorageStrategy chatStorageStrategy;
     @Mock
     private ChatSpaceRepository chatSpaceRepository;
+    @Mock
+    private ChatMessageRepository chatMessageRepository;
     @Mock
     private OutboxService outboxService;
     @Mock
@@ -95,5 +99,29 @@ class ChatCommandServiceTest {
         verify(chatStorageStrategy).persistNewMessage(any(ChatMessage.class), eq(List.of(receiverId.toString())));
         verify(realtimeBroadcastService).broadcast(eq(conversationId.toString()), any());
         verify(inboxBroadcastService, never()).notifyMessageCreated(any(), any(), any());
+    }
+
+    @Test
+    void deleteMessage_success_softDeletesAndBroadcasts() {
+        String messageId = UUID.randomUUID().toString();
+        ChatMessage existing = ChatMessage.builder()
+                .messageId(messageId)
+                .conversationId(conversationId.toString())
+                .senderId(senderId.toString())
+                .type(MessageType.TEXT)
+                .content("hello")
+                .build();
+
+        when(conversationMemberRepository.existsById_ConversationIdAndId_UserIdAndDeletedFalse(
+                conversationId, senderId)).thenReturn(true);
+        when(chatSpaceRepository.getMessage(messageId)).thenReturn(Optional.of(existing));
+
+        ChatMessage result = chatCommandService.deleteMessage(
+                conversationId.toString(), messageId, senderId.toString());
+
+        assertTrue(result.isDeleted());
+        verify(chatSpaceRepository).updateMessage(existing);
+        verify(outboxService).enqueueMessageDeleted(any());
+        verify(realtimeBroadcastService).broadcast(eq(conversationId.toString()), any());
     }
 }

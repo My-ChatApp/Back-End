@@ -7,7 +7,7 @@
     "mychatapp:mailFromSubdomain": "mail",
     "mychatapp:sesFromEmail": "noreply@oeb20412.com",
     "mychatapp:bucketNamePrefix": "mychatapp-attachments",
-    "mychatapp:dynamodbTableName": "MyChatApp_Chat",
+    "mychatapp:dynamodbTableName": "MyChatApp_Chat1",
     "mychatapp:sesImportExisting": true
   }
 }

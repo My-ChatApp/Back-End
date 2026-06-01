@@ -124,6 +124,10 @@ public class ChatMessageItemFactory {
         }).collect(Collectors.toList());
     }
 
+    public List<AttributeValue> toReactionAttributeList(List<MessageReactionDto> reactions) {
+        return toReactionAttrs(reactions);
+    }
+
     private List<AttributeValue> toReactionAttrs(List<MessageReactionDto> reactions) {
         if (reactions == null || reactions.isEmpty()) {
             return List.of();
@@ -134,6 +138,9 @@ public class ChatMessageItemFactory {
             putString(m, "reactionType", r.getReactionType());
             if (r.getCreatedAt() != null) {
                 putString(m, "createdAt", formatInstant(r.getCreatedAt()));
+            }
+            if (r.getUpdatedAt() != null) {
+                putString(m, "updatedAt", formatInstant(r.getUpdatedAt()));
             }
             return AttributeValue.builder().m(m).build();
         }).collect(Collectors.toList());
@@ -171,6 +178,7 @@ public class ChatMessageItemFactory {
                     .userId(getS(m, "userId"))
                     .reactionType(getS(m, "reactionType"))
                     .createdAt(m.containsKey("createdAt") ? Instant.parse(getS(m, "createdAt")) : null)
+                    .updatedAt(m.containsKey("updatedAt") ? Instant.parse(getS(m, "updatedAt")) : null)
                     .build();
         }).collect(Collectors.toList());
     }
