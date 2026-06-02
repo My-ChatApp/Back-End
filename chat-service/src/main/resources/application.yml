@@ -90,9 +90,7 @@ mychatapp:
   websocket:
     endpoint: ${WEBSOCKET_ENDPOINT:/ws}
     sock-js-enabled: ${WEBSOCKET_SOCKJS_ENABLED:true}
-    allowed-origin-patterns:
-      - http://localhost:3000
-      - ${WEBSOCKET_ALLOWED_ORIGINS:https://*.vercel.app}
+    allowed-origin-patterns: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:3000,https://*.vercel.app,https://chat.oeb20412.com}
     broker:
       topic-prefix: ${WEBSOCKET_TOPIC_PREFIX:/topic}
       application-prefix: ${WEBSOCKET_APP_PREFIX:/app}

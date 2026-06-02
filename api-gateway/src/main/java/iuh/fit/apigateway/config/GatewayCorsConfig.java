@@ -11,15 +11,15 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Spring WebFlux Security blocks cross-origin requests unless CORS is enabled here
- * (in addition to spring.cloud.gateway globalcors in application.yml).
+ * Single CORS source for the API Gateway (used by Spring Security's CorsWebFilter).
+ * Do not also enable spring.cloud.gateway globalcors — that duplicates Access-Control-* headers.
  */
 @Configuration
 public class GatewayCorsConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000}") String allowedOriginPatterns
+            @Value("${CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000,https://*.vercel.app,https://chat.oeb20412.com}") String allowedOriginPatterns
     ) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(
