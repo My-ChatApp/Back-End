@@ -12,6 +12,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -28,13 +29,16 @@ class AuthFilterTest {
     private JwtService jwtService;
 
     @Mock
+    private CorsConfigurationSource corsConfigurationSource;
+
+    @Mock
     private GatewayFilterChain chain;
 
     private AuthFilter authFilter;
 
     @BeforeEach
     void setUp() {
-        authFilter = new AuthFilter(jwtService);
+        authFilter = new AuthFilter(jwtService, corsConfigurationSource);
         when(chain.filter(any())).thenReturn(Mono.empty());
     }
 
@@ -81,6 +85,18 @@ class AuthFilterTest {
                 .verifyComplete();
 
         verify(chain).filter(any());
+    }
+
+    @Test
+    void filter_publicAgentPath_skipsJwtValidation() {
+        MockServerHttpRequest request = MockServerHttpRequest.post("/api/agent/chat").build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+
+        StepVerifier.create(authFilter.filter(exchange, chain))
+                .verifyComplete();
+
+        verify(jwtService, never()).isValid(any());
+        verify(chain).filter(exchange);
     }
 
     @Test
