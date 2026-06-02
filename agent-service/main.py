@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from groq import Groq
@@ -33,13 +32,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS is handled only by api-gateway (GatewayCorsConfig). Do not add CORSMiddleware here —
+# duplicate Access-Control-Allow-Origin breaks browsers on https://chat.oeb20412.com.
 
 
 # =========================
