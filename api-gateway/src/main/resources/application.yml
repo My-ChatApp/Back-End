@@ -22,9 +22,8 @@ spring:
     gateway:
       server:
         webflux:
-          # CORS is configured once in GatewayCorsConfig (Spring Security). Do not also set
-          # globalcors here — both layers emit Access-Control-Allow-Origin and browsers reject
-          # duplicate values (e.g. "http://localhost:3000, http://localhost:3000").
+          # CORS: GatewayCorsConfig (Spring Security) + GatewayGlobalCorsConfig (/api/**).
+          # DedupeResponseHeader below avoids duplicate Access-Control-Allow-Origin values.
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
           # Routes: GatewayRoutesConfig.java (rate limit optional via gateway.ratelimit.enabled)

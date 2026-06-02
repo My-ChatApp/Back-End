@@ -18,7 +18,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.CorsUtils;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.cors.reactive.DefaultCorsProcessor;
 
 import reactor.core.publisher.Mono;
 
@@ -29,9 +33,12 @@ import java.util.List;
 public class AuthFilter implements GlobalFilter, Ordered {
 
     private final JwtService jwtService;
+    private final CorsConfigurationSource corsConfigurationSource;
+    private final DefaultCorsProcessor corsProcessor = new DefaultCorsProcessor();
 
-    public AuthFilter(JwtService jwtService) {
+    public AuthFilter(JwtService jwtService, CorsConfigurationSource corsConfigurationSource) {
         this.jwtService = jwtService;
+        this.corsConfigurationSource = corsConfigurationSource;
     }
 
     @Override
@@ -125,7 +132,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
     }
 
     private static boolean isPublicPath(String path) {
-        return path.startsWith("/api/auth/");
+        return path.startsWith("/api/auth/") || path.startsWith("/api/agent/");
     }
 
     /**
@@ -142,10 +149,20 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
         log.error("[AuthFilter] Returning UNAUTHORIZED");
-        exchange.getResponse()
-                .setStatusCode(HttpStatus.UNAUTHORIZED);
-
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        applyCorsIfNeeded(exchange);
         return exchange.getResponse().setComplete();
+    }
+
+    /** Without this, browsers report a CORS error instead of 401 for cross-origin calls. */
+    private void applyCorsIfNeeded(ServerWebExchange exchange) {
+        if (!CorsUtils.isCorsRequest(exchange.getRequest())) {
+            return;
+        }
+        CorsConfiguration config = corsConfigurationSource.getCorsConfiguration(exchange);
+        if (config != null) {
+            corsProcessor.process(config, exchange);
+        }
     }
 
     @Override

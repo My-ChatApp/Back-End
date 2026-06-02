@@ -87,12 +87,12 @@ public class GatewayRoutesConfig {
                     .uri(mediaServiceUri));
 
             routes.route("agent-health", r -> r.path("/api/agent/health")
-                    .filters(f -> stripUpstreamCors(f.rewritePath("/api/agent/health", "/health")))
+                    .filters(f -> f.rewritePath("/api/agent/health", "/health"))
                     .uri(agentServiceUri));
 
             routes.route("agent-chat", r -> r.path("/api/agent/chat")
                     .filters(f -> rateLimit(
-                            stripUpstreamCors(f.rewritePath("/api/agent/chat", "/api/chat")),
+                            f.rewritePath("/api/agent/chat", "/api/chat"),
                             defaultRedisRateLimiter,
                             userKeyResolver))
                     .uri(agentServiceUri));
@@ -108,11 +108,11 @@ public class GatewayRoutesConfig {
             routes.route("media-service", r -> r.path("/api/media/**").uri(mediaServiceUri));
 
             routes.route("agent-health", r -> r.path("/api/agent/health")
-                    .filters(f -> stripUpstreamCors(f.rewritePath("/api/agent/health", "/health")))
+                    .filters(f -> f.rewritePath("/api/agent/health", "/health"))
                     .uri(agentServiceUri));
 
             routes.route("agent-chat", r -> r.path("/api/agent/chat")
-                    .filters(f -> stripUpstreamCors(f.rewritePath("/api/agent/chat", "/api/chat")))
+                    .filters(f -> f.rewritePath("/api/agent/chat", "/api/chat"))
                     .uri(agentServiceUri));
         }
 
@@ -129,14 +129,4 @@ public class GatewayRoutesConfig {
                 .setKeyResolver(keyResolver));
     }
 
-    /** Agent-service used to emit CORS; gateway owns CORS via GatewayCorsConfig. */
-    private GatewayFilterSpec stripUpstreamCors(GatewayFilterSpec spec) {
-        return spec
-                .removeResponseHeader("Access-Control-Allow-Origin")
-                .removeResponseHeader("Access-Control-Allow-Credentials")
-                .removeResponseHeader("Access-Control-Allow-Methods")
-                .removeResponseHeader("Access-Control-Allow-Headers")
-                .removeResponseHeader("Access-Control-Expose-Headers")
-                .removeResponseHeader("Access-Control-Max-Age");
-    }
 }
