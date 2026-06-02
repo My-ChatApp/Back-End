@@ -67,7 +67,7 @@ public class GatewayRoutesConfig {
                     .uri(chatServiceUri));
 
             routes.route("chat-websocket", r -> r.path("/ws/**")
-                    .filters(f -> rateLimit(stripUpstreamCors(f), wsRedisRateLimiter, ipKeyResolver))
+                    .filters(f -> rateLimit(f, wsRedisRateLimiter, ipKeyResolver))
                     .uri(chatServiceUri));
 
             routes.route("user-service", r -> r.path("/api/profiles/**")
@@ -101,9 +101,7 @@ public class GatewayRoutesConfig {
             routes.route("auth-users", r -> r.path("/api/users/**").uri(authServiceUri));
             routes.route("chat-service", r -> r.path("/api/chat/**").uri(chatServiceUri));
             routes.route("chat-conversations", r -> r.path("/api/conversations/**").uri(chatServiceUri));
-            routes.route("chat-websocket", r -> r.path("/ws/**")
-                    .filters(this::stripUpstreamCors)
-                    .uri(chatServiceUri));
+            routes.route("chat-websocket", r -> r.path("/ws/**").uri(chatServiceUri));
             routes.route("user-service", r -> r.path("/api/profiles/**").uri(userServiceUri));
             routes.route("notification-service", r -> r.path("/api/notifications/**").uri(notificationServiceUri));
             routes.route("friend-service", r -> r.path("/api/friends/**").uri(userServiceUri));
@@ -129,19 +127,5 @@ public class GatewayRoutesConfig {
         return spec.requestRateLimiter(config -> config
                 .setRateLimiter(rateLimiter)
                 .setKeyResolver(keyResolver));
-    }
-
-    /**
-     * Chat-service SockJS adds its own CORS headers; gateway Spring Security also adds them.
-     * Strip upstream values so only the gateway CORS layer responds to the browser.
-     */
-    private GatewayFilterSpec stripUpstreamCors(GatewayFilterSpec spec) {
-        return spec
-                .removeResponseHeader("Access-Control-Allow-Origin")
-                .removeResponseHeader("Access-Control-Allow-Credentials")
-                .removeResponseHeader("Access-Control-Allow-Methods")
-                .removeResponseHeader("Access-Control-Allow-Headers")
-                .removeResponseHeader("Access-Control-Expose-Headers")
-                .removeResponseHeader("Access-Control-Max-Age");
     }
 }
