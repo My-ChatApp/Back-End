@@ -54,6 +54,9 @@ rabbitmq:
   login-otp:
     queue: ${RABBITMQ_LOGIN_OTP_QUEUE:auth.login-otp.queue}
     routing-key: ${RABBITMQ_LOGIN_OTP_ROUTING_KEY:auth.login-otp}
+  login-lockout:
+    queue: ${RABBITMQ_LOGIN_LOCKOUT_QUEUE:auth.login-lockout.queue}
+    routing-key: ${RABBITMQ_LOGIN_LOCKOUT_ROUTING_KEY:auth.login-lockout}
 
 logging:
   level:

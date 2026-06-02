@@ -40,6 +40,8 @@ rabbitmq:
   routing-key: ${RABBITMQ_ROUTING_KEY:auth.registered}
   login-otp:
     routing-key: ${RABBITMQ_LOGIN_OTP_ROUTING_KEY:auth.login-otp}
+  login-lockout:
+    routing-key: ${RABBITMQ_LOGIN_LOCKOUT_ROUTING_KEY:auth.login-lockout}
   password-reset:
     routing-key: ${RABBITMQ_PASSWORD_RESET_ROUTING_KEY:auth.password-reset}
 
@@ -58,6 +60,11 @@ otp:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
+
+login-lockout:
+  max-failed-attempts: ${LOGIN_MAX_FAILED_ATTEMPTS:5}
+  lockout-minutes: ${LOGIN_LOCKOUT_MINUTES:5}
+  fail-window-minutes: ${LOGIN_FAIL_WINDOW_MINUTES:15}
 
 password-reset:
   token-expiry-minutes: ${PASSWORD_RESET_TOKEN_EXPIRY_MINUTES:15}

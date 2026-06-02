@@ -22,6 +22,8 @@ services:
     restart: unless-stopped
     pull_policy: never
     ports:
+      # 80 → Cloudflare Proxied (HTTPS edge → HTTP origin). 8080 giữ để dev/test trực tiếp.
+      - "80:8080"
       - "8080:8080"
     env_file:
       - .env.docker

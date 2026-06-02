@@ -14,9 +14,12 @@ import iuh.fit.authservice.entity.User;
 import iuh.fit.authservice.event.publisher.AuthService;
 import iuh.fit.authservice.event.publisher.ChangePasswordService;
 import iuh.fit.authservice.service.CustomUserDetailsService;
+import iuh.fit.authservice.service.LoginLockoutService;
 import iuh.fit.authservice.service.impl.PasswordResetService;
+import iuh.fit.authservice.util.ClientIpResolver;
 import iuh.fit.authservice.util.JwtUtil;
 import iuh.fit.common.dto.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +40,7 @@ public class AuthenticationController {
     private final PasswordResetService passwordResetService;
     private final CustomUserDetailsService userDetailsService;
     private final ChangePasswordService changePasswordService;
+    private final LoginLockoutService loginLockoutService;
 
     @Autowired
     public AuthenticationController(
@@ -45,7 +49,8 @@ public class AuthenticationController {
             AuthService authService,
             PasswordResetService passwordResetService,
             CustomUserDetailsService userDetailsService,
-            ChangePasswordService changePasswordService
+            ChangePasswordService changePasswordService,
+            LoginLockoutService loginLockoutService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
@@ -53,12 +58,21 @@ public class AuthenticationController {
         this.passwordResetService = passwordResetService;
         this.userDetailsService = userDetailsService;
         this.changePasswordService = changePasswordService;
+        this.loginLockoutService = loginLockoutService;
     }
 
     @PostMapping("/signin")
-    public ApiResponse<LoginResponse> authenticateUser(@Valid @RequestBody LoginRequest user) {
+    public ApiResponse<LoginResponse> authenticateUser(
+            @Valid @RequestBody LoginRequest user,
+            HttpServletRequest request
+    ) {
         log.info("[AuthenticationController] Login attempt for email: {}", user.getEmail());
-        return issueTokenForCredentials(user.getEmail(), user.getPassword(), "Login successful");
+        return issueTokenForCredentials(
+                user.getEmail(),
+                user.getPassword(),
+                "Login successful",
+                ClientIpResolver.resolve(request)
+        );
     }
 
     @PostMapping("/signup")
@@ -101,14 +115,23 @@ public class AuthenticationController {
     private ApiResponse<LoginResponse> issueTokenForCredentials(
             String email,
             String password,
-            String successMessage
+            String successMessage,
+            String clientIp
     ) {
+        var lockout = loginLockoutService.getActiveLockout(clientIp);
+        if (lockout.isPresent()) {
+            String message = loginLockoutService.formatLockoutMessage(lockout.get().retryAfterSeconds());
+            log.warn("[AuthenticationController] Blocked sign-in from IP {} for email {}", clientIp, email);
+            return new ApiResponse<>(false, message, null);
+        }
+
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
             log.info("[AuthenticationController] Authentication successful for: {}", email);
+            loginLockoutService.clearFailedAttempts(clientIp);
 
             final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             if (userDetails == null) {
@@ -120,6 +143,15 @@ public class AuthenticationController {
             return new ApiResponse<>(true, successMessage, new LoginResponse(token));
         } catch (Exception e) {
             log.error("[AuthenticationController] Authentication failed for {}: {}", email, e.getMessage());
+            loginLockoutService.recordFailedAttempt(clientIp, email);
+            var afterFailure = loginLockoutService.getActiveLockout(clientIp);
+            if (afterFailure.isPresent()) {
+                return new ApiResponse<>(
+                        false,
+                        loginLockoutService.formatLockoutMessage(afterFailure.get().retryAfterSeconds()),
+                        null
+                );
+            }
             return new ApiResponse<>(false, "Invalid email or password", null);
         }
     }

@@ -44,6 +44,12 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.login-otp.routing-key:auth.login-otp}")
     private String loginOtpRoutingKey;
 
+    @Value("${rabbitmq.login-lockout.queue:auth.login-lockout.queue}")
+    private String loginLockoutQueueName;
+
+    @Value("${rabbitmq.login-lockout.routing-key:auth.login-lockout}")
+    private String loginLockoutRoutingKey;
+
     @Bean
     public TopicExchange friendExchange() {
         return new TopicExchange(FRIEND_EXCHANGE);
@@ -126,6 +132,19 @@ public class RabbitMQConfig {
                 .bind(loginOtpQueue)
                 .to(authExchange)
                 .with(loginOtpRoutingKey);
+    }
+
+    @Bean
+    public Queue loginLockoutQueue() {
+        return QueueBuilder.durable(loginLockoutQueueName).build();
+    }
+
+    @Bean
+    public Binding loginLockoutBinding(Queue loginLockoutQueue, TopicExchange authExchange) {
+        return BindingBuilder
+                .bind(loginLockoutQueue)
+                .to(authExchange)
+                .with(loginLockoutRoutingKey);
     }
 
     @Bean

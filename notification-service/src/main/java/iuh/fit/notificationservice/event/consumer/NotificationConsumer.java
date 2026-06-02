@@ -5,6 +5,7 @@ import iuh.fit.notificationservice.entity.Notification;
 import iuh.fit.notificationservice.entity.NotificationType;
 import iuh.fit.notificationservice.event.payload.FriendAcceptedEvent;
 import iuh.fit.notificationservice.event.payload.FriendRequestSentEvent;
+import iuh.fit.notificationservice.event.payload.LoginLockoutEvent;
 import iuh.fit.notificationservice.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +100,52 @@ public class NotificationConsumer {
         notificationRepository.save(notification);
     }
 
+    @RabbitListener(queues = "${rabbitmq.login-lockout.queue:auth.login-lockout.queue}")
+    @Transactional
+    public void handleLoginLockout(LoginLockoutEvent event) {
+        validateLoginLockoutEvent(event);
+        log.info("[NotificationConsumer] Login lockout alert for userId={}", event.getUserId());
+
+        UUID userId = UUID.fromString(event.getUserId());
+        UUID referenceId = UUID.nameUUIDFromBytes(
+                ("login-lockout:" + event.getUserId() + ":" + event.getLockedUntil()).getBytes()
+        );
+
+        if (alreadyExists(userId, NotificationType.SYSTEM, referenceId)) {
+            log.info("[NotificationConsumer] Skip duplicate SYSTEM login-lockout referenceId={}", referenceId);
+            return;
+        }
+
+        String ip = event.getClientIp() != null ? event.getClientIp() : "không xác định";
+        int minutes = event.getLockoutMinutes() > 0 ? event.getLockoutMinutes() : 5;
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("reason", "LOGIN_LOCKOUT");
+        data.put("clientIp", ip);
+        data.put("email", event.getEmail());
+        if (event.getLockedUntil() != null) {
+            data.put("lockedUntil", event.getLockedUntil().toString());
+        }
+        data.put("lockoutMinutes", minutes);
+
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .type(NotificationType.SYSTEM)
+                .title("Cảnh báo đăng nhập")
+                .body("Có nhiều lần đăng nhập thất bại từ IP "
+                        + ip
+                        + ". Đăng nhập từ IP này bị tạm khóa "
+                        + minutes
+                        + " phút. Nếu không phải bạn, hãy đổi mật khẩu.")
+                .referenceId(referenceId)
+                .data(data)
+                .read(false)
+                .expireAt(Instant.now().plus(30, ChronoUnit.DAYS))
+                .build();
+
+        notificationRepository.save(notification);
+    }
+
     private boolean alreadyExists(UUID userId, NotificationType type, UUID referenceId) {
         return notificationRepository.existsByUserIdAndTypeAndReferenceIdAndDeletedFalse(
                 userId, type, referenceId);
@@ -119,6 +166,12 @@ public class NotificationConsumer {
                 || event.getSenderId() == null
                 || event.getReceiverId() == null) {
             throw new IllegalArgumentException("FriendAcceptedEvent thiếu trường bắt buộc");
+        }
+    }
+
+    private static void validateLoginLockoutEvent(LoginLockoutEvent event) {
+        if (event == null || event.getUserId() == null || event.getUserId().isBlank()) {
+            throw new IllegalArgumentException("LoginLockoutEvent thiếu userId");
         }
     }
 }
